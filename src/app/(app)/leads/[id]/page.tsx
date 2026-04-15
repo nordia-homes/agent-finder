@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, CheckSquare, FileText, History } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { ScoringExplanation } from '@/components/leads/scoring-explanation';
 import { Badge } from '@/components/ui/badge';
@@ -93,22 +92,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </Card>
           
           <ScoringExplanation lead={lead} />
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline">Owner</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center gap-3">
-              <Avatar>
-                <AvatarImage src={lead.owner.avatar} alt={lead.owner.name} />
-                <AvatarFallback>{lead.owner.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-medium">{lead.owner.name}</p>
-                <p className="text-sm text-muted-foreground">Lead Owner</p>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
