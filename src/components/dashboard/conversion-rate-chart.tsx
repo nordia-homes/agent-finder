@@ -1,13 +1,20 @@
 'use client';
 
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { Bar, BarChart, XAxis, YAxis, Tooltip } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 
 const data = [
   { name: 'Contacted to Replied', value: 18.7 },
   { name: 'Replied to Demo', value: 35.2 },
 ];
+
+const chartConfig = {
+  value: {
+    label: 'Rate',
+    color: 'hsl(var(--primary))',
+  },
+} satisfies ChartConfig;
 
 export function ConversionRateChart() {
   return (
@@ -17,8 +24,8 @@ export function ConversionRateChart() {
         <CardDescription>Key funnel conversion metrics.</CardDescription>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={data} layout="vertical" margin={{ left: 20 }}>
+        <ChartContainer config={chartConfig} className="w-full h-[200px]">
+          <BarChart accessibilityLayer data={data} layout="vertical" margin={{ left: 20 }}>
             <XAxis type="number" hide />
             <YAxis
               dataKey="name"
@@ -28,10 +35,13 @@ export function ConversionRateChart() {
               width={130}
               tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
             />
-            <Tooltip cursor={{ fill: 'hsl(var(--muted))' }} content={<ChartTooltipContent indicator="dot" />} />
-            <Bar dataKey="value" radius={[4, 4, 4, 4]} className="fill-primary" />
+            <Tooltip
+              cursor={{ fill: 'hsl(var(--muted))' }}
+              content={<ChartTooltipContent indicator="dot" />}
+            />
+            <Bar dataKey="value" radius={[4, 4, 4, 4]} fill="var(--color-value)" />
           </BarChart>
-        </ResponsiveContainer>
+        </ChartContainer>
       </CardContent>
     </Card>
   );
