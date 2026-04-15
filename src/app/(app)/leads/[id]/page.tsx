@@ -28,6 +28,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     notFound();
   }
 
+  const scoreColorClass =
+    lead.independent_score > 75
+      ? 'text-green-600'
+      : lead.independent_score > 50
+      ? 'text-amber-600'
+      : 'text-red-600';
+
   return (
     <div className="space-y-6">
       <LeadLifecycleTracker lead={lead} />
@@ -64,16 +71,38 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
         <div className="lg:col-span-1 space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="font-headline">Scoring</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Independent Score</span>
-                <span className="text-2xl font-bold font-headline text-primary">{lead.independent_score}</span>
+            <CardContent className="pt-6 text-center flex flex-col items-center justify-center">
+              <div className="relative w-32 h-32">
+                <svg className="w-full h-full" viewBox="0 0 36 36">
+                  <path
+                    className="text-muted/20"
+                    d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831
+                      a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3.5"
+                  />
+                  <path
+                    className={scoreColorClass}
+                    stroke="currentColor"
+                    strokeWidth="3.5"
+                    strokeDasharray={`${lead.independent_score}, 100`}
+                    d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831
+                      a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    strokeLinecap="round"
+                    transform="rotate(-90 18 18)"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className={cn("text-4xl font-bold font-headline", scoreColorClass)}>{lead.independent_score}</span>
+                  <span className="text-xs text-muted-foreground">/ 100</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Classification</span>
+              <CardTitle className="font-headline mt-4 text-xl">Independent Score</CardTitle>
+              <div className="mt-2">
                 <Badge variant="outline" className={cn(classificationStyles[lead.classification], 'capitalize font-medium')}>
                   {lead.classification.replace('_', ' ')}
                 </Badge>
