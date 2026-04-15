@@ -93,19 +93,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
 
         <div className="lg:col-span-1 space-y-6">
-          <Card className="bg-gradient-to-br from-primary/90 to-primary text-primary-foreground">
-            <CardHeader>
-                <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle className="text-white font-headline">Independent Score</CardTitle>
-                        <CardDescription className="text-white/80">Overall lead quality rating</CardDescription>
-                    </div>
-                    <Badge variant="outline" className={cn(classificationStyles[lead.classification], 'capitalize font-medium border-white/50 text-white bg-white/10')}>
-                        {lead.classification.replace('_', ' ')}
-                    </Badge>
+          <Card className="bg-gradient-to-br from-primary/90 to-primary text-primary-foreground overflow-hidden">
+            <CardContent className="p-6 relative">
+              <div className="absolute inset-0 bg-black/20 mix-blend-multiply"></div>
+              <div className="relative z-10 space-y-6">
+                <div>
+                  <div className="flex justify-between items-start">
+                      <div>
+                          <CardTitle className="text-white font-headline">Independent Score</CardTitle>
+                          <CardDescription className="text-white/80">Overall lead quality rating</CardDescription>
+                      </div>
+                      <Badge variant="outline" className={cn(classificationStyles[lead.classification], 'capitalize font-medium border-white/50 text-white bg-white/10')}>
+                          {lead.classification.replace('_', ' ')}
+                      </Badge>
+                  </div>
                 </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
+                
                 <div className="space-y-2 text-white">
                     <div className="text-4xl font-bold font-headline">{lead.independent_score}<span className="text-2xl text-white/70">/100</span></div>
                     <Progress value={lead.independent_score} className="h-2 bg-white/30 [&>div]:bg-white" />
@@ -146,6 +149,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </div>
                     </div>
                 </div>
+              </div>
             </CardContent>
           </Card>
           
