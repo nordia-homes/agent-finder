@@ -2,7 +2,7 @@ import { leads, users, recentActivities } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Edit, Mail, MessageSquare, Phone, Plus } from 'lucide-react';
+import { ArrowLeft, Edit, Mail, MessageSquare, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,8 @@ import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { ScoringExplanation } from '@/components/leads/scoring-explanation';
 import type { Lead } from '@/lib/types';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const classificationStyles: Record<Lead['classification'], string> = {
   likely_independent: 'bg-green-100 text-green-800 border-green-200',
@@ -36,8 +38,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </Link>
         </Button>
         <Button>
-          <Edit className="mr-2 h-4 w-4" />
-          Edit
+          <MessageSquare className="mr-2 h-4 w-4" />
+          WhatsApp
+        </Button>
+        <Button variant="outline">
+          <Phone className="mr-2 h-4 w-4" />
+          Call
+        </Button>
+        <Button variant="outline">
+          <Mail className="mr-2 h-4 w-4" />
+          Email
         </Button>
       </PageHeader>
 
@@ -47,14 +57,57 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <CardHeader>
               <CardTitle className="font-headline">Lead Details</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div><strong>Email:</strong> <a href={`mailto:${lead.email}`} className="text-primary hover:underline">{lead.email}</a></div>
-                <div><strong>Phone:</strong> <a href={`tel:${lead.phone}`} className="text-primary hover:underline">{lead.phone}</a></div>
-                <div><strong>Website:</strong> <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{lead.website}</a></div>
-                <div><strong>Location:</strong> {lead.city}, {lead.county}</div>
-                <div><strong>Listings:</strong> {lead.active_listings_count}</div>
-                <div><strong>Source:</strong> {lead.source}</div>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Email</p>
+                  <div className="flex items-center gap-2">
+                    <a href={`mailto:${lead.email}`} className="font-medium text-primary hover:underline">{lead.email}</a>
+                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Phone</p>
+                  <a href={`tel:${lead.phone}`} className="font-medium text-primary hover:underline">{lead.phone}</a>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Website</p>
+                  <a href={lead.website} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">{lead.website}</a>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Location</p>
+                  <p className="font-medium">{lead.city}, {lead.county}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Listings</p>
+                  <p className="font-medium">{lead.active_listings_count}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground">Source</p>
+                  <p className="font-medium">{lead.source}</p>
+                </div>
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <Label htmlFor="lead-status">Lead Status</Label>
+                <Select defaultValue={lead.lead_status}>
+                  <SelectTrigger id="lead-status" className="bg-background">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="reviewed">Reviewed</SelectItem>
+                    <SelectItem value="qualified">Qualified</SelectItem>
+                    <SelectItem value="contacted">Contacted</SelectItem>
+                    <SelectItem value="replied">Replied</SelectItem>
+                    <SelectItem value="demo_booked">Demo Booked</SelectItem>
+                    <SelectItem value="closed_won">Closed Won</SelectItem>
+                    <SelectItem value="closed_lost">Closed Lost</SelectItem>
+                    <SelectItem value="not_relevant">Not Relevant</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
