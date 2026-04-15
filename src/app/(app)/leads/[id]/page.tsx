@@ -18,9 +18,9 @@ import { format } from 'date-fns';
 
 
 const classificationStyles: Record<Lead['classification'], string> = {
-  likely_independent: 'bg-green-100 text-green-800 border-green-200',
-  possible_independent: 'bg-amber-100 text-amber-800 border-amber-200',
-  agency: 'bg-red-100 text-red-800 border-red-200',
+  likely_independent: 'bg-green-400/10 text-green-300 border-green-400/20',
+  possible_independent: 'bg-amber-400/10 text-amber-300 border-amber-400/20',
+  agency: 'bg-red-400/10 text-red-300 border-red-400/20',
 };
 
 export default function LeadDetailPage({ params }: { params: { id: string } }) {
@@ -103,15 +103,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <CardTitle className="text-white font-headline">Independent Score</CardTitle>
                           <CardDescription className="text-white/80">Overall lead quality rating</CardDescription>
                       </div>
-                      <Badge variant="outline" className={cn(classificationStyles[lead.classification], 'capitalize font-medium border-white/50 text-white bg-white/10')}>
-                          {lead.classification.replace('_', ' ')}
-                      </Badge>
                   </div>
                 </div>
                 
-                <div className="space-y-2 text-white">
+                <div className="space-y-3 text-white">
                     <div className="text-4xl font-bold font-headline">{lead.independent_score}<span className="text-2xl text-white/70">/100</span></div>
                     <Progress value={lead.independent_score} className="h-2 bg-white/30 [&>div]:bg-white" />
+                    <Badge variant="outline" className={cn(classificationStyles[lead.classification], 'capitalize font-medium w-full justify-center py-1.5 text-sm')}>
+                        {lead.classification.replace('_', ' ')}
+                    </Badge>
                 </div>
 
                 <Separator className="bg-white/20" />
