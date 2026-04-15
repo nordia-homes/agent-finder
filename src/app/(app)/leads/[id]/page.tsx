@@ -1,9 +1,8 @@
 import { leads } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckSquare, FileText, History } from 'lucide-react';
+import { CheckSquare, FileText, History } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Link from 'next/link';
 import { ScoringExplanation } from '@/components/leads/scoring-explanation';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -31,11 +30,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="space-y-6">
+      <LeadLifecycleTracker lead={lead} />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-2 space-y-6">
           <LeadInfoCard lead={lead} />
           <LeadDetailsCard lead={lead} />
-          <LeadLifecycleTracker lead={lead} />
           
           <Tabs defaultValue="notes" className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-muted/50">
