@@ -1,7 +1,7 @@
 import { leads } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, FileText, History, Edit, Mail, MessageSquare } from 'lucide-react';
+import { CheckSquare, FileText, History, Mail, MessageSquare, Briefcase, Globe, AtSign, Database, List, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScoringExplanation } from '@/components/leads/scoring-explanation';
 import { Badge } from '@/components/ui/badge';
@@ -23,12 +23,39 @@ const classificationStyles: Record<Lead['classification'], string> = {
   agency: 'bg-red-400/10 text-red-300 border-red-400/20',
 };
 
+const DetailItem = ({ label, value, icon: Icon }: { label: string; value: React.ReactNode, icon: React.ElementType }) => (
+    <div className="bg-black/10 backdrop-blur-sm border border-white/10 rounded-lg p-3 transition-all hover:bg-black/20 group text-sm">
+        <div className="flex items-start gap-3">
+            <Icon className="h-4 w-4 text-white/60 mt-0.5 flex-shrink-0" />
+            <div>
+                <p className="text-xs text-white/70">{label}</p>
+                <div className="font-medium truncate text-white">{value || '-'}</div>
+            </div>
+        </div>
+    </div>
+);
+
+
 export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const lead = leads.find((l) => l.id === params.id);
 
   if (!lead) {
     notFound();
   }
+
+  const scoreColor =
+    lead.independent_score > 70
+      ? 'text-green-300'
+      : lead.independent_score > 50
+      ? 'text-amber-300'
+      : 'text-red-300';
+      
+  const progressColorClass =
+    lead.independent_score > 70
+      ? '[&>div]:bg-green-400'
+      : lead.independent_score > 50
+      ? '[&>div]:bg-amber-400'
+      : '[&>div]:bg-red-400';
 
   return (
     <div className="space-y-6">
@@ -106,9 +133,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
                 
-                <div className="space-y-3 text-white">
-                    <div className="text-4xl font-bold font-headline">{lead.independent_score}<span className="text-2xl text-white/70">/100</span></div>
-                    <Progress value={lead.independent_score} className="h-2 bg-white/30 [&>div]:bg-white" />
+                <div className="space-y-3">
+                    <div className={cn("text-4xl font-bold font-headline", scoreColor)}>{lead.independent_score}<span className="text-2xl text-white/70">/100</span></div>
+                    <Progress value={lead.independent_score} className={cn("h-2 bg-white/20", progressColorClass)} />
                     <Badge variant="outline" className={cn(classificationStyles[lead.classification], 'capitalize font-medium w-full justify-center py-1.5 text-sm')}>
                         {lead.classification.replace('_', ' ')}
                     </Badge>
@@ -116,38 +143,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                 <Separator className="bg-white/20" />
 
-                <div>
-                    <h3 className="text-lg font-headline font-semibold text-white mb-4">Lead Details</h3>
-                    <div className="grid grid-cols-1 gap-4 text-sm">
-                        <div className="space-y-1">
-                            <p className="text-xs text-white/70">Company</p>
-                            <p className="font-medium">{lead.company_name || '-'}</p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-xs text-white/70">Website</p>
-                            <p className="font-medium truncate">
-                                {lead.website ? <a href={lead.website} target="_blank" rel="noopener noreferrer" className="hover:underline">{lead.website}</a> : '-'}
-                            </p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-xs text-white/70">Email</p>
-                            <p className="font-medium truncate">
-                                <a href={`mailto:${lead.email}`} className="hover:underline">{lead.email}</a>
-                            </p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-xs text-white/70">Lead Source</p>
-                            <p className="font-medium">{lead.source}</p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-xs text-white/70">Active Listings</p>
-                            <p className="font-medium">{lead.active_listings_count}</p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-xs text-white/70">Date Added</p>
-                            <p className="font-medium">{format(new Date(lead.created_at), 'MMM d, yyyy')}</p>
-                        </div>
-                    </div>
+                <div className="grid grid-cols-1 gap-3">
+                    <DetailItem label="Company" value={lead.company_name} icon={Briefcase} />
+                    <DetailItem label="Website" value={lead.website ? <a href={lead.website} target="_blank" rel="noopener noreferrer" className="hover:underline">{lead.website}</a> : '-'} icon={Globe} />
+                    <DetailItem label="Email" value={<a href={`mailto:${lead.email}`} className="hover:underline">{lead.email}</a>} icon={AtSign} />
+                    <DetailItem label="Lead Source" value={lead.source} icon={Database} />
+                    <DetailItem label="Active Listings" value={lead.active_listings_count} icon={List} />
+                    <DetailItem label="Date Added" value={format(new Date(lead.created_at), 'MMM d, yyyy')} icon={Calendar} />
                 </div>
               </div>
             </CardContent>
