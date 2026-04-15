@@ -10,7 +10,7 @@ const DetailItem = ({ label, value, children }: { label: string; value?: React.R
     const displayValue = isValueEmpty && !children ? '-' : value;
 
     return (
-        <div className="p-4 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors group">
+        <div className="text-foreground p-4 text-base rounded-lg bg-background cursor-pointer border border-transparent transition-all duration-300 shadow-neumorphic hover:border-card active:shadow-neumorphic-active group">
             <p className="text-xs text-muted-foreground mb-1">{label}</p>
             <div className="flex items-center justify-between">
                 <div className="text-sm font-medium truncate">{displayValue}</div>

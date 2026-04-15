@@ -77,6 +77,10 @@ export default {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      boxShadow: {
+        'neumorphic': '6px 6px 12px hsl(var(--muted)), -6px -6px 12px hsl(var(--card))',
+        'neumorphic-active': '4px 4px 12px hsl(var(--muted)), -4px -4px 12px hsl(var(--card))',
+      },
       keyframes: {
         'accordion-down': {
           from: {
