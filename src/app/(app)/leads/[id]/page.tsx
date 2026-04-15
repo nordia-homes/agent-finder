@@ -31,15 +31,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/leads">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Leads
-          </Link>
-        </Button>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-2 space-y-6">
           <LeadInfoCard lead={lead} />
