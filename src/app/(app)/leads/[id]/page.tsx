@@ -70,8 +70,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
 
         <div className="lg:col-span-1 space-y-6">
-          <Card className="bg-gradient-to-br from-accent/5 to-background">
-            <CardContent className="pt-6 text-center flex flex-col items-center justify-center">
+          <div className="rounded-lg bg-background p-6 text-center flex flex-col items-center justify-center shadow-neumorphic">
               <div className="relative w-32 h-32">
                 <svg className="w-full h-full" viewBox="0 0 36 36">
                   <path
@@ -101,14 +100,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <span className="text-xs text-muted-foreground">/ 100</span>
                 </div>
               </div>
-              <CardTitle className="font-headline mt-4 text-xl">Independent Score</CardTitle>
+              <h2 className="font-headline mt-4 text-xl font-semibold tracking-tight">Independent Score</h2>
               <div className="mt-2">
                 <Badge variant="outline" className={cn(classificationStyles[lead.classification], 'capitalize font-medium')}>
                   {lead.classification.replace('_', ' ')}
                 </Badge>
               </div>
-            </CardContent>
-          </Card>
+          </div>
           
           <ScoringExplanation lead={lead} />
         </div>
