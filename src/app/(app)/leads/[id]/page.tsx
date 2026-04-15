@@ -10,9 +10,11 @@ import type { Lead } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LeadLifecycleTracker } from '@/components/leads/lead-lifecycle-tracker';
 import { LeadInfoCard } from '@/components/leads/lead-info-card';
-import { LeadDetailsCard } from '@/components/leads/lead-details-card';
 import { NotesSection } from '@/components/leads/notes';
 import { ActivityTimeline } from '@/components/leads/activity-timeline';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { format } from 'date-fns';
 
 
 const classificationStyles: Record<Lead['classification'], string> = {
@@ -27,13 +29,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   if (!lead) {
     notFound();
   }
-
-  const scoreColorClass =
-    lead.independent_score > 75
-      ? 'text-green-600'
-      : lead.independent_score > 50
-      ? 'text-amber-600'
-      : 'text-red-600';
 
   return (
     <div className="space-y-6">
@@ -98,46 +93,63 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
 
         <div className="lg:col-span-1 space-y-6">
-          <div className="rounded-lg bg-background p-6 text-center flex flex-col items-center justify-center shadow-neumorphic">
-              <div className="relative w-32 h-32">
-                <svg className="w-full h-full" viewBox="0 0 36 36">
-                  <path
-                    className="text-muted/20"
-                    d="M18 2.0845
-                      a 15.9155 15.9155 0 0 1 0 31.831
-                      a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3.5"
-                  />
-                  <path
-                    className={scoreColorClass}
-                    stroke="currentColor"
-                    strokeWidth="3.5"
-                    strokeDasharray={`${lead.independent_score}, 100`}
-                    d="M18 2.0845
-                      a 15.9155 15.9155 0 0 1 0 31.831
-                      a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    strokeLinecap="round"
-                    transform="rotate(-90 18 18)"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className={cn("text-4xl font-bold font-headline", scoreColorClass)}>{lead.independent_score}</span>
-                  <span className="text-xs text-muted-foreground">/ 100</span>
+          <Card className="bg-gradient-to-br from-primary/90 to-primary text-primary-foreground">
+            <CardHeader>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle className="text-white font-headline">Independent Score</CardTitle>
+                        <CardDescription className="text-white/80">Overall lead quality rating</CardDescription>
+                    </div>
+                    <Badge variant="outline" className={cn(classificationStyles[lead.classification], 'capitalize font-medium border-white/50 text-white bg-white/10')}>
+                        {lead.classification.replace('_', ' ')}
+                    </Badge>
                 </div>
-              </div>
-              <h2 className="font-headline mt-4 text-xl font-semibold tracking-tight">Independent Score</h2>
-              <div className="mt-2">
-                <Badge variant="outline" className={cn(classificationStyles[lead.classification], 'capitalize font-medium')}>
-                  {lead.classification.replace('_', ' ')}
-                </Badge>
-              </div>
-          </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="space-y-2 text-white">
+                    <div className="text-4xl font-bold font-headline">{lead.independent_score}<span className="text-2xl text-white/70">/100</span></div>
+                    <Progress value={lead.independent_score} className="h-2 bg-white/30 [&>div]:bg-white" />
+                </div>
+
+                <Separator className="bg-white/20" />
+
+                <div>
+                    <h3 className="text-lg font-headline font-semibold text-white mb-4">Lead Details</h3>
+                    <div className="grid grid-cols-1 gap-4 text-sm">
+                        <div className="space-y-1">
+                            <p className="text-xs text-white/70">Company</p>
+                            <p className="font-medium">{lead.company_name || '-'}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-xs text-white/70">Website</p>
+                            <p className="font-medium truncate">
+                                {lead.website ? <a href={lead.website} target="_blank" rel="noopener noreferrer" className="hover:underline">{lead.website}</a> : '-'}
+                            </p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-xs text-white/70">Email</p>
+                            <p className="font-medium truncate">
+                                <a href={`mailto:${lead.email}`} className="hover:underline">{lead.email}</a>
+                            </p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-xs text-white/70">Lead Source</p>
+                            <p className="font-medium">{lead.source}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-xs text-white/70">Active Listings</p>
+                            <p className="font-medium">{lead.active_listings_count}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-xs text-white/70">Date Added</p>
+                            <p className="font-medium">{format(new Date(lead.created_at), 'MMM d, yyyy')}</p>
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+          </Card>
           
           <ScoringExplanation lead={lead} />
-          <LeadDetailsCard lead={lead} />
         </div>
       </div>
     </div>
