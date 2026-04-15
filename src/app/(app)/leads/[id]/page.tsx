@@ -1,7 +1,7 @@
 import { leads } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, FileText, History } from 'lucide-react';
+import { CheckSquare, FileText, History, Edit } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScoringExplanation } from '@/components/leads/scoring-explanation';
 import { Badge } from '@/components/ui/badge';
@@ -70,7 +70,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
 
         <div className="lg:col-span-1 space-y-6">
-          <Card>
+          <Card className="bg-gradient-to-br from-accent/5 to-background">
             <CardContent className="pt-6 text-center flex flex-col items-center justify-center">
               <div className="relative w-32 h-32">
                 <svg className="w-full h-full" viewBox="0 0 36 36">
