@@ -21,7 +21,7 @@ const DetailItem = ({ label, value, children }: { label: string; value?: React.R
 
 export function LeadDetailsCard({ lead }: { lead: Lead }) {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
             <DetailItem 
                 label="Company Name" 
                 value={lead.company_name} 

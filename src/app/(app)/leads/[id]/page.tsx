@@ -1,8 +1,8 @@
 import { leads } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, FileText, History, Edit } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CheckSquare, FileText, History, Edit, Mail, MessageSquare } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScoringExplanation } from '@/components/leads/scoring-explanation';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -41,7 +41,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-2 space-y-6">
           <LeadInfoCard lead={lead} />
-          <LeadDetailsCard lead={lead} />
+          
+          <Tabs defaultValue="whatsapp" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+              <TabsTrigger value="whatsapp"><MessageSquare className="mr-2 h-4 w-4"/>WhatsApp</TabsTrigger>
+              <TabsTrigger value="email"><Mail className="mr-2 h-4 w-4"/>Email</TabsTrigger>
+            </TabsList>
+            <TabsContent value="whatsapp" className="mt-6">
+              <Card>
+                <CardHeader>
+                    <CardTitle>WhatsApp Communication</CardTitle>
+                    <CardDescription>Select a template and view conversation history.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground">WhatsApp integration coming soon.</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="email" className="mt-6">
+              <Card>
+                <CardHeader>
+                    <CardTitle>Email Outreach</CardTitle>
+                    <CardDescription>Use email templates and track engagement.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground">Email automation and templates coming soon.</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
           
           <Tabs defaultValue="notes" className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-muted/50">
@@ -109,6 +137,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           
           <ScoringExplanation lead={lead} />
+          <LeadDetailsCard lead={lead} />
         </div>
       </div>
     </div>
