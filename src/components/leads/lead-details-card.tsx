@@ -3,26 +3,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Lead } from "@/lib/types";
 import { format } from "date-fns";
 import { Edit } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 
 const DetailItem = ({ label, value, children }: { label: string; value?: React.ReactNode; children?: React.ReactNode }) => {
     const isValueEmpty = value === null || value === undefined || value === '';
     
-    if (isValueEmpty && !children) {
-        return null;
-    }
+    const displayValue = isValueEmpty && !children ? '-' : value;
 
     return (
-        <div className="flex justify-between items-center">
-            <p className="text-sm text-muted-foreground">{label}</p>
-            <div className="flex items-center gap-2">
-                 <div className="text-sm font-medium text-right truncate">{isValueEmpty ? '-' : value}</div>
+        <div className="p-4 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors group">
+            <p className="text-xs text-muted-foreground mb-1">{label}</p>
+            <div className="flex items-center justify-between">
+                <div className="text-sm font-medium truncate">{displayValue}</div>
                  {children}
             </div>
         </div>
     );
 };
-
 
 export function LeadDetailsCard({ lead }: { lead: Lead }) {
     return (
@@ -30,38 +26,33 @@ export function LeadDetailsCard({ lead }: { lead: Lead }) {
             <CardHeader>
                 <CardTitle className="font-headline text-lg">Lead Details</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-y-4">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DetailItem 
                     label="Company Name" 
                     value={lead.company_name} 
                 />
-                <Separator />
                 <DetailItem 
                     label="Website" 
                     value={
-                        lead.website ? <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{lead.website}</a> : '-'
+                        lead.website ? <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{lead.website}</a> : undefined
                     } 
                 />
-                <Separator />
                  <DetailItem 
                     label="Email Address" 
                     value={<a href={`mailto:${lead.email}`} className="text-primary hover:underline">{lead.email}</a>}
                 >
-                     <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0 -mr-2">
+                     <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0 -mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Edit className="h-4 w-4" />
                     </Button>
                 </DetailItem>
-                <Separator />
                 <DetailItem 
                     label="Lead Source" 
                     value={lead.source} 
                 />
-                <Separator />
                 <DetailItem 
                     label="Active Listings" 
                     value={lead.active_listings_count} 
                 />
-                 <Separator />
                  <DetailItem 
                     label="Date Added" 
                     value={format(new Date(lead.created_at), 'MMM d, yyyy')} 
