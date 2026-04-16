@@ -18,26 +18,7 @@ import type { Campaign as CampaignType } from "@/lib/types";
 
 // Mock data, this will come from firebase
 const campaigns = [
-    {
-        id: '1',
-        name: 'Q4 Independent Agent Push',
-        description: 'Multi-step email sequence for high-scoring independent agents.',
-        status: 'active' as const,
-        leadsCount: 250,
-        progress: 60,
-        replyRate: 12,
-        channel: 'email' as const,
-    },
-    {
-        id: '2',
-        name: 'New Listings Follow-up (WhatsApp)',
-        description: 'Automated WhatsApp follow-up for agents with new listings.',
-        status: 'paused' as const,
-        leadsCount: 75,
-        progress: 25,
-        replyRate: 8,
-        channel: 'whatsapp' as const,
-    },
+    // AI Call Campaigns
     {
         id: '3',
         name: 'AI Cold Call - Q1 Leads',
@@ -49,15 +30,97 @@ const campaigns = [
         channel: 'ai_call' as const,
     },
     {
+        id: '5',
+        name: 'High-Scoring Lead Follow-up',
+        description: 'AI-powered calls to high-potential leads (Score > 80).',
+        status: 'active' as const,
+        leadsCount: 120,
+        progress: 45,
+        replyRate: 18,
+        channel: 'ai_call' as const,
+    },
+    {
+        id: '6',
+        name: 'Demo Confirmation Calls',
+        description: 'Automated AI calls to confirm upcoming product demos.',
+        status: 'paused' as const,
+        leadsCount: 30,
+        progress: 90,
+        replyRate: 95, // Confirmation rates should be high
+        channel: 'ai_call' as const,
+    },
+    // WhatsApp Campaigns
+    {
+        id: '2',
+        name: 'New Listings Follow-up',
+        description: 'Automated WhatsApp follow-up for agents with new listings.',
+        status: 'paused' as const,
+        leadsCount: 75,
+        progress: 25,
+        replyRate: 8,
+        channel: 'whatsapp' as const,
+    },
+    {
+        id: '7',
+        name: 'Post-Demo Feedback',
+        description: 'Gather feedback via WhatsApp 24 hours after a product demo.',
+        status: 'active' as const,
+        leadsCount: 40,
+        progress: 70,
+        replyRate: 35,
+        channel: 'whatsapp' as const,
+    },
+    {
+        id: '8',
+        name: 'Inactive Lead Reactivation',
+        description: 'A 3-message sequence to re-engage leads inactive for 90 days.',
+        status: 'completed' as const,
+        leadsCount: 200,
+        progress: 100,
+        replyRate: 5,
+        channel: 'whatsapp' as const,
+    },
+    // Email Campaigns
+    {
+        id: '1',
+        name: 'Q4 Independent Agent Push',
+        description: 'Multi-step email sequence for high-scoring independent agents.',
+        status: 'active' as const,
+        leadsCount: 250,
+        progress: 60,
+        replyRate: 12,
+        channel: 'email' as const,
+    },
+    {
+        id: '9',
+        name: 'Welcome Sequence for New Leads',
+        description: 'A 5-part email series to nurture new leads entering the CRM.',
+        status: 'draft' as const,
+        leadsCount: 0,
+        progress: 0,
+        replyRate: 0,
+        channel: 'email' as const,
+    },
+    {
+        id: '10',
+        name: 'Monthly Newsletter - Agency Tips',
+        description: 'Ongoing monthly newsletter with valuable content for agents.',
+        status: 'active' as const,
+        leadsCount: 1500,
+        progress: 5, // Represents progress in the current month's send
+        replyRate: 2, // Newsletters have low reply rates
+        channel: 'email' as const,
+    },
+    {
         id: '4',
-        name: 'Q3 Email Outreach',
+        name: 'Q3 Email Outreach (Archive)',
         description: 'Completed email campaign from the previous quarter.',
         status: 'completed' as const,
         leadsCount: 180,
         progress: 100,
         replyRate: 15,
         channel: 'email' as const,
-    }
+    },
 ];
 
 type Campaign = (typeof campaigns)[0];
