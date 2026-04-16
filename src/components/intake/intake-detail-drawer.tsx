@@ -41,6 +41,27 @@ const DetailItem = ({ label, value, icon: Icon, isUrl = false }: { label: string
     );
 };
 
+const classificationStyles: Record<NonNullable<Import['classification']>, string> = {
+  likely_independent: 'bg-green-100 text-green-800 border-green-200',
+  possible_independent: 'bg-amber-100 text-amber-800 border-amber-200',
+  agency: 'bg-red-100 text-red-800 border-red-200',
+};
+
+const reviewStatusStyles: Record<Import['review_status'], string> = {
+  pending_review: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  approved: 'bg-blue-100 text-blue-800 border-blue-200',
+  rejected: 'bg-red-100 text-red-800 border-red-200',
+  duplicate: 'bg-gray-100 text-gray-800 border-gray-200',
+};
+
+const phoneStatusStyles: Record<NonNullable<Import['phone_status']>, string> = {
+  found: 'bg-green-100 text-green-800 border-green-200',
+  missing: 'bg-gray-100 text-gray-800 border-gray-200',
+  not_found: 'bg-gray-100 text-gray-800 border-gray-200',
+  click_failed: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  challenge_detected: 'bg-amber-100 text-amber-800 border-amber-200',
+};
+
 
 export function IntakeDetailDrawer({ open, onOpenChange, selectedImport, onApprove, onReject, onMarkDuplicate }: IntakeDetailDrawerProps) {
   if (!selectedImport) return null;
@@ -52,12 +73,15 @@ export function IntakeDetailDrawer({ open, onOpenChange, selectedImport, onAppro
       city,
       county,
       phone,
+      phone_status,
       email,
       website,
       description,
       source,
       source_url,
       active_listings_count,
+      sales_count,
+      rent_count,
       independent_score,
       classification,
       review_status,
@@ -68,19 +92,6 @@ export function IntakeDetailDrawer({ open, onOpenChange, selectedImport, onAppro
   } = selectedImport;
 
   const name = company_name || full_name;
-  
-  const classificationStyles: Record<NonNullable<Import['classification']>, string> = {
-    likely_independent: 'bg-green-100 text-green-800 border-green-200',
-    possible_independent: 'bg-amber-100 text-amber-800 border-amber-200',
-    agency: 'bg-red-100 text-red-800 border-red-200',
-  };
-
-  const reviewStatusStyles: Record<Import['review_status'], string> = {
-    pending_review: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    approved: 'bg-blue-100 text-blue-800 border-blue-200',
-    rejected: 'bg-red-100 text-red-800 border-red-200',
-    duplicate: 'bg-gray-100 text-gray-800 border-gray-200',
-  };
   
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -104,18 +115,21 @@ export function IntakeDetailDrawer({ open, onOpenChange, selectedImport, onAppro
                 <DetailItem label="Company Name" value={company_name} icon={Briefcase} />
                 <DetailItem label="Location" value={city && county ? `${city}, ${county}` : city} icon={MapPin} />
                 <DetailItem label="Phone" value={phone} icon={Phone} />
+                <DetailItem label="Phone Status" value={phone_status ? <Badge variant="outline" className={cn(phoneStatusStyles[phone_status], 'font-medium capitalize')}>{phone_status.replace(/_/g, ' ')}</Badge> : null} icon={Phone} />
                 <DetailItem label="Email" value={<a href={`mailto:${email}`} className="text-primary hover:underline">{email}</a>} icon={AtSign} />
-                <DetailItem label="Website" value={<a href={website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{website}</a>} icon={Globe} />
+                <DetailItem label="Website" value={website ? <a href={website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{website}</a> : '-'} icon={Globe} />
                 <DetailItem label="Description" value={description} icon={FileText} />
                 <Separator />
-                <DetailItem label="Source" value={source} icon={Database} />
-                <DetailItem label="Active Listings" value={active_listings_count} icon={List} />
+                 <DetailItem label="Source" value={source ? <a href={source_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline capitalize">{source.replace(/_/g, ' ')}</a> : '-'} icon={Database} />
+                <DetailItem label="Listings for Sale" value={sales_count} icon={List} />
+                <DetailItem label="Listings for Rent" value={rent_count} icon={List} />
+                <DetailItem label="Active Listings (Total)" value={active_listings_count} icon={List} />
                 <DetailItem label="Independent Score" value={independent_score} icon={Star} />
                 <Separator />
                 <DetailItem label="Imported At" value={format(importedAt.toDate(), 'PPP p')} icon={Calendar} />
                 <DetailItem label="Job ID" value={jobId} icon={Hash} />
                 <DetailItem label="Source Page Number" value={pageNumber} icon={Hash} />
-                <DetailItem label="Source Page URL" value={<a href={pageUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{pageUrl}</a>} icon={Globe} isUrl />
+                <DetailItem label="Source Page URL" value={pageUrl ? <a href={pageUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{pageUrl}</a> : '-'} icon={Globe} isUrl />
             </div>
         </ScrollArea>
         <SheetFooter className="p-4 bg-muted/50 border-t mt-auto">

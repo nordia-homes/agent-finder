@@ -92,12 +92,15 @@ export type Import = {
   city?: string;
   county?: string;
   phone?: string;
+  phone_status?: 'found' | 'missing' | 'not_found' | 'click_failed' | 'challenge_detected';
   email?: string;
   website?: string;
   description?: string;
   source?: string;
   source_url?: string;
   active_listings_count?: number;
+  sales_count?: number;
+  rent_count?: number;
   independent_score?: number;
   classification?: 'likely_independent' | 'possible_independent' | 'agency';
   review_status: 'pending_review' | 'approved' | 'rejected' | 'duplicate';

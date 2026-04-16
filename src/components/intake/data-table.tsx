@@ -46,9 +46,7 @@ export function DataTable<TData extends {id: string, independent_score?: number,
   const [sorting, setSorting] = useState<SortingState>([{ id: 'importedAt', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
-      phone: false,
-  });
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
 
   const table = useReactTable({
@@ -84,7 +82,7 @@ export function DataTable<TData extends {id: string, independent_score?: number,
   
   const sources = useMemo(() => {
     const sourceSet = new Set(data.map(item => (item as any).source).filter(Boolean));
-    return Array.from(sourceSet);
+    return Array.from(sourceSet).map(s => s.replace(/_/g, ' '));
   }, [data]);
 
   const scoreRange = (table.getColumn('independent_score')?.getFilterValue() as [number, number]) ?? [0, 100];
@@ -120,13 +118,13 @@ export function DataTable<TData extends {id: string, independent_score?: number,
                 </SelectContent>
             </Select>
 
-            <Select onValueChange={(value) => table.getColumn('source')?.setFilterValue(value === 'all' ? undefined : value)}>
-                <SelectTrigger className="w-[160px] bg-card">
+            <Select onValueChange={(value) => table.getColumn('source')?.setFilterValue(value === 'all' ? undefined : value.replace(/ /g, '_'))}>
+                <SelectTrigger className="w-[160px] bg-card capitalize">
                     <SelectValue placeholder="Filter by Source" />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="all">All Sources</SelectItem>
-                    {sources.map(source => <SelectItem key={source} value={source}>{source}</SelectItem>)}
+                    {sources.map(source => <SelectItem key={source} value={source} className="capitalize">{source}</SelectItem>)}
                 </SelectContent>
             </Select>
 
@@ -139,6 +137,20 @@ export function DataTable<TData extends {id: string, independent_score?: number,
                      <SelectItem value="likely_independent">Likely Independent</SelectItem>
                      <SelectItem value="possible_independent">Possible Independent</SelectItem>
                      <SelectItem value="agency">Agency</SelectItem>
+                </SelectContent>
+            </Select>
+
+            <Select onValueChange={(value) => table.getColumn('phone_status')?.setFilterValue(value === 'all' ? undefined : value)}>
+                <SelectTrigger className="w-[180px] bg-card">
+                    <SelectValue placeholder="Phone Status" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Phone Statuses</SelectItem>
+                    <SelectItem value="found">Found</SelectItem>
+                    <SelectItem value="missing">Missing</SelectItem>
+                    <SelectItem value="not_found">Not Found</SelectItem>
+                    <SelectItem value="click_failed">Click Failed</SelectItem>
+                    <SelectItem value="challenge_detected">Challenge Detected</SelectItem>
                 </SelectContent>
             </Select>
 
