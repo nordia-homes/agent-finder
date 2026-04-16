@@ -1,17 +1,18 @@
-import { PageHeader } from '@/components/shared/page-header';
 import { KpiCard } from '@/components/dashboard/kpi-card';
-import { BarChart, CheckCircle, FilePlus, Hand, Users, Workflow } from 'lucide-react';
+import { BarChart, CheckCircle, FilePlus, Hand, Users } from 'lucide-react';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { TasksOverview } from '@/components/dashboard/tasks-overview';
-import { ConversionRateChart } from '@/components/dashboard/conversion-rate-chart';
+import { SalesFunnelChart } from '@/components/dashboard/sales-funnel-chart';
+import { WelcomeBanner } from '@/components/dashboard/welcome-banner';
 
 export default function DashboardPage() {
   return (
-    <>
-      <PageHeader title="Dashboard" description="Welcome back, here's a summary of your activities." />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 mb-8">
+    <div className="space-y-8">
+      <WelcomeBanner />
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <KpiCard
-          title="Total Approved Leads"
+          title="Total Leads"
           value="1,254"
           change="+20.1% from last month"
           changeType="positive"
@@ -27,36 +28,35 @@ export default function DashboardPage() {
         <KpiCard
           title="Likely Independent"
           value="789"
-          description="Leads with score > 70"
+          change="63% of total"
           icon={<CheckCircle className="h-5 w-5" />}
         />
         <KpiCard
-          title="Contacted Leads"
+          title="Contacted"
           value="512"
-          change="32 in last 7 days"
+          change="41% of total"
           icon={<Hand className="h-5 w-5" />}
         />
         <KpiCard
-          title="Booked Demos"
+          title="Demos Booked"
           value="42"
           change="+5 this week"
           changeType="positive"
           icon={<BarChart className="h-5 w-5" />}
-          className="lg:col-start-4 xl:col-start-5"
+          className="xl:col-start-5"
         />
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-8">
-          <ConversionRateChart />
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <SalesFunnelChart />
         </div>
-        <div className="space-y-8">
+        <div className="lg:col-span-2 space-y-8">
           <TasksOverview />
         </div>
       </div>
-       <div className="mt-8">
-          <RecentActivity />
-        </div>
-    </>
+
+      <RecentActivity />
+    </div>
   );
 }
