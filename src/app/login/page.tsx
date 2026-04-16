@@ -36,9 +36,18 @@ export default function LoginPage() {
     try {
       await signInWithPopup(auth, provider);
       toast({ title: "Sign-in successful!", description: "Redirecting to your dashboard..." });
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast({ title: "Sign-in failed", description: "Could not sign in with Google. Please try again.", variant: "destructive" });
+      if (error.code === 'auth/unauthorized-domain') {
+        toast({
+          variant: "destructive",
+          title: "Domain Not Authorized",
+          description: "This domain is not authorized for Google Sign-In. Add it in your Firebase project: Authentication > Sign-in method > Authorized domains.",
+          duration: 10000,
+        });
+      } else {
+        toast({ title: "Sign-in failed", description: "Could not sign in with Google. Please try again.", variant: "destructive" });
+      }
     } finally {
         setIsSigningIn(false);
     }
