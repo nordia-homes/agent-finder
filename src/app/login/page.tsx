@@ -37,8 +37,10 @@ export default function LoginPage() {
       await signInWithPopup(auth, provider);
       toast({ title: "Sign-in successful!", description: "Redirecting to your dashboard..." });
     } catch (error: any) {
-      console.error(error);
-      if (error.code === 'auth/unauthorized-domain') {
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        // User closed the popup, do not show an error
+        console.log("Sign-in popup closed by user.");
+      } else if (error.code === 'auth/unauthorized-domain') {
         toast({
           variant: "destructive",
           title: "Domain Not Authorized",
@@ -46,6 +48,7 @@ export default function LoginPage() {
           duration: 10000,
         });
       } else {
+        console.error(error);
         toast({ title: "Sign-in failed", description: "Could not sign in with Google. Please try again.", variant: "destructive" });
       }
     } finally {
