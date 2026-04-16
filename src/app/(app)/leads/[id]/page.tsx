@@ -1,4 +1,4 @@
-import { leads } from '@/lib/data';
+import { leads, recentActivities, tasks } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { CheckSquare, FileText, History, Mail, MessageSquare, Briefcase, Globe, AtSign, Database, List, Calendar, Phone } from 'lucide-react';
@@ -15,6 +15,7 @@ import { ActivityTimeline } from '@/components/leads/activity-timeline';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
+import { TasksSection } from '@/components/leads/tasks-section';
 
 
 const classificationStyles: Record<Lead['classification'], string> = {
@@ -42,6 +43,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   if (!lead) {
     notFound();
   }
+
+  const leadActivities = recentActivities.filter(
+    (activity) => activity.lead_name === lead.full_name || activity.lead_name === lead.company_name
+  );
+  
+  const leadNotes = leadActivities.filter(a => a.event_type === 'note_added');
+
+  const leadTasks = tasks.filter(
+    (task) => task.lead_name === lead.full_name || task.lead_name === lead.company_name
+  );
 
   const scoreColor =
     lead.independent_score > 70
@@ -112,20 +123,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <TabsTrigger value="tasks"><CheckSquare className="mr-2 h-4 w-4"/>Tasks</TabsTrigger>
             </TabsList>
             <TabsContent value="notes" className="mt-6">
-              <NotesSection />
+              <NotesSection notes={leadNotes} />
             </TabsContent>
             <TabsContent value="activity" className="mt-6">
-              <ActivityTimeline />
+              <ActivityTimeline activities={leadActivities} />
             </TabsContent>
             <TabsContent value="tasks" className="mt-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Tasks</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground">Task management for this lead will be available here.</p>
-                    </CardContent>
-                </Card>
+                <TasksSection tasks={leadTasks} />
             </TabsContent>
           </Tabs>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Accordion,
@@ -9,13 +9,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { recentActivities } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { formatDistanceToNow } from "date-fns";
+import type { Activity } from "@/lib/types";
 
-export function NotesSection() {
-    const notes = recentActivities.filter(a => a.event_type === 'note_added');
-
+export function NotesSection({ notes }: { notes: Activity[] }) {
     return (
         <div className="space-y-6">
             <Card>
@@ -30,7 +28,7 @@ export function NotesSection() {
                 </CardContent>
             </Card>
 
-            {notes.length > 0 && (
+            {notes.length > 0 ? (
                 <div>
                      <h3 className="text-base font-medium mb-4 font-headline">Recent Notes</h3>
                      <Accordion type="single" collapsible className="w-full space-y-2">
@@ -57,6 +55,12 @@ export function NotesSection() {
                         ))}
                     </Accordion>
                 </div>
+            ): (
+                 <Card className="mt-6">
+                    <CardContent className="pt-6 text-center text-muted-foreground">
+                        <p>No notes for this lead yet.</p>
+                    </CardContent>
+                </Card>
             )}
         </div>
     );
