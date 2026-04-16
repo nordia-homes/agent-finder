@@ -18,7 +18,7 @@ import { format } from 'date-fns';
 
 
 const classificationStyles: Record<Lead['classification'], string> = {
-  likely_independent: 'bg-green-400/10 text-green-300 border-green-400/20',
+  likely_independent: 'bg-accent/10 text-accent border-accent/20',
   possible_independent: 'bg-amber-400/10 text-amber-300 border-amber-400/20',
   agency: 'bg-red-400/10 text-red-300 border-red-400/20',
 };
@@ -45,14 +45,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   const scoreColor =
     lead.independent_score > 70
-      ? 'text-green-300'
+      ? 'text-accent'
       : lead.independent_score > 50
       ? 'text-amber-300'
       : 'text-red-300';
       
   const progressColorClass =
     lead.independent_score > 70
-      ? '[&>div]:bg-green-400'
+      ? '[&>div]:bg-accent'
       : lead.independent_score > 50
       ? '[&>div]:bg-amber-400'
       : '[&>div]:bg-red-400';
