@@ -1,5 +1,5 @@
 import { KpiCard } from '@/components/dashboard/kpi-card';
-import { BarChart, CheckCircle, FilePlus, Hand, Users } from 'lucide-react';
+import { BarChart, CheckCircle, FilePlus, Hand, Users, Phone, MessageSquare } from 'lucide-react';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { TasksOverview } from '@/components/dashboard/tasks-overview';
 import { SalesFunnelChart } from '@/components/dashboard/sales-funnel-chart';
@@ -43,7 +43,16 @@ export default function DashboardPage() {
           change="+5 this week"
           changeType="positive"
           icon={<BarChart className="h-5 w-5" />}
-          className="xl:col-start-5"
+        />
+        <KpiCard
+          title="AI Calls Today"
+          value="7"
+          icon={<Phone className="h-5 w-5" />}
+        />
+        <KpiCard
+          title="WhatsApp Today"
+          value="23"
+          icon={<MessageSquare className="h-5 w-5" />}
         />
       </div>
 
