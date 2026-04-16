@@ -18,107 +18,109 @@ import type { Campaign as CampaignType } from "@/lib/types";
 
 // Mock data, this will come from firebase
 const campaigns = [
-    // AI Call Campaigns
+    // --- AI Call Campaigns ---
+    {
+        id: '1',
+        name: 'Q3 Independent Agent - Initial Contact',
+        description: 'AI-powered initial call to high-scoring independent agents (score > 75) to gauge interest.',
+        status: 'active' as const,
+        leadsCount: 150,
+        progress: 30,
+        replyRate: 25, // Connection rate
+        channel: 'ai_call' as const,
+    },
+    {
+        id: '2',
+        name: 'Q3 No-Answer Retry Sequence',
+        description: 'Automated AI call attempts for leads who did not answer the first time. Runs 3 days after initial attempt.',
+        status: 'paused' as const,
+        leadsCount: 105, // 150 * 70% didn't answer
+        progress: 10,
+        replyRate: 15,
+        channel: 'ai_call' as const,
+    },
     {
         id: '3',
-        name: 'AI Cold Call - Q1 Leads',
-        description: 'Initial AI-powered cold call campaign for new year leads.',
+        name: 'Q4 Planning - AI Call Strategy',
+        description: 'Drafting the AI call strategy for the upcoming quarter, targeting agency-affiliated agents.',
         status: 'draft' as const,
         leadsCount: 0,
         progress: 0,
         replyRate: 0,
         channel: 'ai_call' as const,
     },
+    
+    // --- WhatsApp Campaigns ---
+    {
+        id: '4',
+        name: 'Q3 Post-Call Follow-up',
+        description: 'Immediate WhatsApp follow-up sent to agents successfully contacted via the AI call.',
+        status: 'active' as const,
+        leadsCount: 45, // 150 * 30% connected
+        progress: 30,
+        replyRate: 40,
+        channel: 'whatsapp' as const,
+    },
     {
         id: '5',
-        name: 'High-Scoring Lead Follow-up',
-        description: 'AI-powered calls to high-potential leads (Score > 80).',
-        status: 'active' as const,
-        leadsCount: 120,
-        progress: 45,
-        replyRate: 18,
-        channel: 'ai_call' as const,
+        name: 'Post-Demo Feedback Request',
+        description: 'Automated message to gather feedback 24 hours after a product demo is completed.',
+        status: 'draft' as const,
+        leadsCount: 0,
+        progress: 0,
+        replyRate: 0,
+        channel: 'whatsapp' as const,
     },
-    {
+     {
         id: '6',
-        name: 'Demo Confirmation Calls',
-        description: 'Automated AI calls to confirm upcoming product demos.',
-        status: 'paused' as const,
-        leadsCount: 30,
-        progress: 90,
-        replyRate: 95, // Confirmation rates should be high
-        channel: 'ai_call' as const,
-    },
-    // WhatsApp Campaigns
-    {
-        id: '2',
-        name: 'New Listings Follow-up',
-        description: 'Automated WhatsApp follow-up for agents with new listings.',
-        status: 'paused' as const,
-        leadsCount: 75,
-        progress: 25,
-        replyRate: 8,
-        channel: 'whatsapp' as const,
-    },
-    {
-        id: '7',
-        name: 'Post-Demo Feedback',
-        description: 'Gather feedback via WhatsApp 24 hours after a product demo.',
-        status: 'active' as const,
-        leadsCount: 40,
-        progress: 70,
-        replyRate: 35,
-        channel: 'whatsapp' as const,
-    },
-    {
-        id: '8',
-        name: 'Inactive Lead Reactivation',
-        description: 'A 3-message sequence to re-engage leads inactive for 90 days.',
+        name: 'Q2 Inactive Lead Reactivation (WhatsApp)',
+        description: 'A 3-message sequence to re-engage leads inactive for 90 days. Completed last quarter.',
         status: 'completed' as const,
         leadsCount: 200,
         progress: 100,
-        replyRate: 5,
+        replyRate: 7,
         channel: 'whatsapp' as const,
     },
-    // Email Campaigns
+
+    // --- Email Campaigns ---
     {
-        id: '1',
-        name: 'Q4 Independent Agent Push',
-        description: 'Multi-step email sequence for high-scoring independent agents.',
+        id: '7',
+        name: 'Q3 Info Pack & Next Steps',
+        description: 'Automated email with info pack, sent after a successful AI call connection.',
         status: 'active' as const,
-        leadsCount: 250,
-        progress: 60,
-        replyRate: 12,
+        leadsCount: 45,
+        progress: 30,
+        replyRate: 18, // Open/Click rate represented here
+        channel: 'email' as const,
+    },
+    {
+        id: '8',
+        name: 'Demo Confirmation & Prep',
+        description: 'A 2-part email series to confirm demo times and provide prep materials.',
+        status: 'active' as const,
+        leadsCount: 12, // Leads that replied and booked a demo
+        progress: 80,
+        replyRate: 95, // High confirmation rate
         channel: 'email' as const,
     },
     {
         id: '9',
-        name: 'Welcome Sequence for New Leads',
-        description: 'A 5-part email series to nurture new leads entering the CRM.',
-        status: 'draft' as const,
-        leadsCount: 0,
-        progress: 0,
-        replyRate: 0,
+        name: 'Q3 Nurture - Possible Independents',
+        description: 'A slow-drip content campaign for medium-scoring leads (score 50-75).',
+        status: 'active' as const,
+        leadsCount: 400,
+        progress: 15,
+        replyRate: 4,
         channel: 'email' as const,
     },
     {
         id: '10',
-        name: 'Monthly Newsletter - Agency Tips',
-        description: 'Ongoing monthly newsletter with valuable content for agents.',
-        status: 'active' as const,
-        leadsCount: 1500,
-        progress: 5, // Represents progress in the current month's send
-        replyRate: 2, // Newsletters have low reply rates
-        channel: 'email' as const,
-    },
-    {
-        id: '4',
-        name: 'Q3 Email Outreach (Archive)',
-        description: 'Completed email campaign from the previous quarter.',
+        name: 'Q2 Email Outreach (Archived)',
+        description: 'Completed email campaign from the previous quarter for historical reference.',
         status: 'completed' as const,
-        leadsCount: 180,
+        leadsCount: 320,
         progress: 100,
-        replyRate: 15,
+        replyRate: 11,
         channel: 'email' as const,
     },
 ];
