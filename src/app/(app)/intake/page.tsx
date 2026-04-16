@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Rocket } from "lucide-react";
 import { useCollection, useFirestore, useUser } from '@/firebase';
-import { collection, serverTimestamp, writeBatch, doc, query, orderBy, limit } from 'firebase/firestore';
+import { collection, serverTimestamp, writeBatch, doc, query, orderBy, limit, where } from 'firebase/firestore';
 import type { Import, ScrapeJob } from '@/lib/types';
 import { DataTable } from '@/components/intake/data-table';
 import { columns } from '@/components/intake/columns';
@@ -28,7 +28,7 @@ export default function IntakePage() {
 
   const importsQuery = useMemo(() => {
     if (!firestore || !user) return null;
-    return collection(firestore, 'imports');
+    return query(collection(firestore, 'imports'), where('review_status', '==', 'pending_review'));
   }, [firestore, user]);
 
   const { data: scrapeJobs, loading: jobsLoading } = useCollection<ScrapeJob>(scrapeJobsQuery);

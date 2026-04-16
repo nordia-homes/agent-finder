@@ -153,19 +153,6 @@ export function DataTable<TData extends {id: string, independent_score?: number,
                     <SelectItem value="challenge_detected">Challenge Detected</SelectItem>
                 </SelectContent>
             </Select>
-
-             <Select onValueChange={(value) => table.getColumn('review_status')?.setFilterValue(value === 'all' ? undefined : value)}>
-                <SelectTrigger className="w-[180px] bg-card">
-                    <SelectValue placeholder="Review Status" />
-                </SelectTrigger>
-                <SelectContent>
-                     <SelectItem value="all">All Statuses</SelectItem>
-                     <SelectItem value="pending_review">Pending Review</SelectItem>
-                     <SelectItem value="approved">Approved</SelectItem>
-                     <SelectItem value="rejected">Rejected</SelectItem>
-                     <SelectItem value="duplicate">Duplicate</SelectItem>
-                </SelectContent>
-            </Select>
         </div>
         <div className="flex items-center gap-2 w-full max-w-xs">
             <span className="text-sm text-muted-foreground w-32 shrink-0">Score: {scoreRange[0]} - {scoreRange[1]}</span>

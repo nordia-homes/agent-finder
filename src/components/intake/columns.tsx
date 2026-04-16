@@ -133,18 +133,6 @@ export const columns: ColumnDef<Import>[] = [
     },
   },
   {
-    accessorKey: 'review_status',
-    header: 'Review Status',
-    cell: ({ row }) => (
-      <Badge variant="outline" className={cn(reviewStatusStyles[row.original.review_status], 'capitalize font-medium')}>
-        {row.original.review_status.replace('_', ' ')}
-      </Badge>
-    ),
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id))
-    },
-  },
-  {
     accessorKey: 'importedAt',
     header: ({ column }) => (
       <Button
