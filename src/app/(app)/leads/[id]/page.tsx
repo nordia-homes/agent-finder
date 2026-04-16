@@ -1,7 +1,7 @@
 import { leads } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, FileText, History, Mail, MessageSquare, Briefcase, Globe, AtSign, Database, List, Calendar } from 'lucide-react';
+import { CheckSquare, FileText, History, Mail, MessageSquare, Briefcase, Globe, AtSign, Database, List, Calendar, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScoringExplanation } from '@/components/leads/scoring-explanation';
 import { Badge } from '@/components/ui/badge';
@@ -65,9 +65,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <LeadInfoCard lead={lead} />
           
           <Tabs defaultValue="whatsapp" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+            <TabsList className="grid w-full grid-cols-3 bg-muted/50">
               <TabsTrigger value="whatsapp"><MessageSquare className="mr-2 h-4 w-4"/>WhatsApp</TabsTrigger>
               <TabsTrigger value="email"><Mail className="mr-2 h-4 w-4"/>Email</TabsTrigger>
+              <TabsTrigger value="ai-call"><Phone className="mr-2 h-4 w-4"/>AI Call</TabsTrigger>
             </TabsList>
             <TabsContent value="whatsapp" className="mt-6">
               <Card>
@@ -88,6 +89,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </CardHeader>
                 <CardContent>
                     <p className="text-muted-foreground">Email automation and templates coming soon.</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+             <TabsContent value="ai-call" className="mt-6">
+              <Card>
+                <CardHeader>
+                    <CardTitle>AI Call</CardTitle>
+                    <CardDescription>Initiate and manage AI-powered calls.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground">AI Call functionality coming soon.</p>
                 </CardContent>
               </Card>
             </TabsContent>
