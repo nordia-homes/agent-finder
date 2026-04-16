@@ -97,6 +97,20 @@
         "created_at": { "type": "string", "format": "date-time" }
       },
       "required": ["lead_id", "lead_name", "owner_id", "type", "due_date", "completed", "created_at"]
+    },
+    "Campaign": {
+      "title": "Campaign",
+      "description": "Represents an outreach campaign.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "active", "paused", "completed"] },
+        "owner_id": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "lead_ids": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["name", "status", "owner_id", "created_at"]
     }
   },
   "auth": {
@@ -118,6 +132,10 @@
     "/tasks/{taskId}": {
       "schema": { "$ref": "#/entities/Task" },
       "description": "Stores tasks assigned to users."
+    },
+    "/campaigns/{campaignId}": {
+      "schema": { "$ref": "#/entities/Campaign" },
+      "description": "Stores outreach campaigns."
     }
   }
 }

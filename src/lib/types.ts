@@ -67,6 +67,16 @@ export type Task = {
   created_at: Timestamp;
 };
 
+export type Campaign = {
+  id: string;
+  name: string;
+  description: string;
+  status: 'draft' | 'active' | 'paused' | 'completed';
+  owner_id: string;
+  created_at: Timestamp;
+  lead_ids: string[];
+};
+
 export type NavItem = {
   href: string;
   label: string;
