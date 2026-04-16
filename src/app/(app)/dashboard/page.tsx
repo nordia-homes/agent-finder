@@ -56,13 +56,11 @@ export default function DashboardPage() {
               title="AI Calls Today"
               value="7"
               icon={<Phone className="h-5 w-5" />}
-              className="border-2 border-primary/20 bg-primary/10 shadow-lg shadow-primary/10"
             />
             <KpiCard
               title="WhatsApp Today"
               value="23"
               icon={<MessageSquare className="h-5 w-5" />}
-              className="border-2 border-accent/20 bg-accent/10 shadow-lg shadow-accent/10"
             />
           </div>
           <TasksOverview />
