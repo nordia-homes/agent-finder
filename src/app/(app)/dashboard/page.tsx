@@ -44,16 +44,6 @@ export default function DashboardPage() {
           changeType="positive"
           icon={<BarChart className="h-5 w-5" />}
         />
-        <KpiCard
-          title="AI Calls Today"
-          value="7"
-          icon={<Phone className="h-5 w-5" />}
-        />
-        <KpiCard
-          title="WhatsApp Today"
-          value="23"
-          icon={<MessageSquare className="h-5 w-5" />}
-        />
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
@@ -61,6 +51,20 @@ export default function DashboardPage() {
           <SalesFunnelChart />
         </div>
         <div className="lg:col-span-2 space-y-8">
+           <div className="space-y-4">
+            <KpiCard
+              title="AI Calls Today"
+              value="7"
+              icon={<Phone className="h-5 w-5" />}
+              className="border-2 border-primary/20 bg-primary/10 shadow-lg shadow-primary/10"
+            />
+            <KpiCard
+              title="WhatsApp Today"
+              value="23"
+              icon={<MessageSquare className="h-5 w-5" />}
+              className="border-2 border-accent/20 bg-accent/10 shadow-lg shadow-accent/10"
+            />
+          </div>
           <TasksOverview />
         </div>
       </div>
