@@ -64,9 +64,10 @@ export function StartScrapeDialog({ children }: { children: React.ReactNode }) {
 
     } catch (error) {
       console.error("Error starting custom scrape job:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
       toast({ 
         title: "Scrape Job Failed", 
-        description: "The scraping service encountered an error. Please check the logs or try again later.", 
+        description: `The scraping service encountered an error: ${errorMessage}`, 
         variant: "destructive"
       });
     } finally {
@@ -120,7 +121,7 @@ export function StartScrapeDialog({ children }: { children: React.ReactNode }) {
                     <FormItem>
                       <FormLabel>Max Pages</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="10" {...field} onChange={event => field.onChange(+event.target.value)} />
+                        <Input type="number" placeholder="10" {...field} value={field.value ?? ''} onChange={event => field.onChange(+event.target.value)} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -133,7 +134,7 @@ export function StartScrapeDialog({ children }: { children: React.ReactNode }) {
                     <FormItem>
                       <FormLabel>Max Listings</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="150" {...field} onChange={event => field.onChange(+event.target.value)} />
+                        <Input type="number" placeholder="150" {...field} value={field.value ?? ''} onChange={event => field.onChange(+event.target.value)} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
