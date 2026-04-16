@@ -18,6 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { startScrapeJob } from '@/app/(app)/intake/actions';
 
 
 const scrapeFormSchema = z.object({
@@ -26,8 +27,6 @@ const scrapeFormSchema = z.object({
 });
 
 type ScrapeFormValues = z.infer<typeof scrapeFormSchema>;
-
-const SCRAPE_URL = 'https://playwright-scraper-507405936606.europe-west1.run.app/scrape-agents';
 
 export function StartScrapeDialog({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -45,23 +44,17 @@ export function StartScrapeDialog({ children }: { children: React.ReactNode }) {
   const onSubmit = async (data: ScrapeFormValues) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch(SCRAPE_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+      const result = await startScrapeJob(data);
 
-      if (!response.ok) {
-        throw new Error(`Scraping failed with status: ${response.status}`);
+      if (!result.success) {
+        throw new Error(result.error);
       }
       
-      const result = await response.json();
+      const resultData = result.data as { jobId: string };
 
       toast({
         title: 'Scrape Job Started',
-        description: `Successfully started scraping for ${data.city}. Job ID: ${result.jobId}`,
+        description: `Successfully started scraping for ${data.city}. Job ID: ${resultData.jobId}`,
       });
       
       // We don't refresh data here as it can take time for imports to show up.
@@ -74,7 +67,7 @@ export function StartScrapeDialog({ children }: { children: React.ReactNode }) {
       console.error("Error starting scrape job:", error);
       toast({ 
         title: "Error", 
-        description: "Failed to start scrape job. Please check the console for details.", 
+        description: (error as Error).message || "Failed to start scrape job. Please check the console for details.", 
         variant: "destructive"
       });
     } finally {
