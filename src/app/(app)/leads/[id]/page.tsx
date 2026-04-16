@@ -151,7 +151,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
                 
                 <div className="space-y-3">
-                    <div className={cn("text-4xl font-bold font-headline", scoreColor)}>{lead.independent_score}<span className="text-2xl text-white/70">/100</span></div>
+                    <div className={cn("text-4xl font-bold", scoreColor)}>{lead.independent_score}<span className="text-2xl text-white/70">/100</span></div>
                     <Progress value={lead.independent_score} className={cn("h-2 bg-white/20", progressColorClass)} />
                     <Badge variant="outline" className={cn(classificationStyles[lead.classification], 'capitalize font-medium w-full justify-center py-1.5 text-sm')}>
                         {lead.classification.replace('_', ' ')}
