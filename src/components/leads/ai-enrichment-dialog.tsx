@@ -25,7 +25,7 @@ interface AIEnrichmentDialogProps {
 const LoadingState = () => (
     <div className="space-y-6">
         <div>
-            <h4 className="font-semibold mb-2 flex items-center gap-2"><BrainCircuit className="h-4 w-4" /> Rezumat</h4>
+            <h4 className="font-semibold mb-2 flex items-center gap-2"><BrainCircuit className="h-4 w-4" /> Summary</h4>
             <div className="space-y-2">
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-full" />
@@ -34,14 +34,14 @@ const LoadingState = () => (
         </div>
          <Separator />
         <div>
-            <h4 className="font-semibold mb-2 flex items-center gap-2"><Users className="h-4 w-4" /> Profile Social Media</h4>
+            <h4 className="font-semibold mb-2 flex items-center gap-2"><Users className="h-4 w-4" /> Social Media Profiles</h4>
             <div className="space-y-2">
                 <Skeleton className="h-4 w-1/2" />
             </div>
         </div>
          <Separator />
         <div>
-            <h4 className="font-semibold mb-2 flex items-center gap-2"><Newspaper className="h-4 w-4" /> Știri Recente</h4>
+            <h4 className="font-semibold mb-2 flex items-center gap-2"><Newspaper className="h-4 w-4" /> Recent News</h4>
             <div className="space-y-2">
                 <Skeleton className="h-4 w-3/4" />
             </div>
@@ -51,7 +51,7 @@ const LoadingState = () => (
 
 const EmptyState = () => (
     <div className="text-center py-8">
-        <p className="text-muted-foreground">Nu am putut găsi informații suplimentare pentru acest lead.</p>
+        <p className="text-muted-foreground">Could not find additional information for this lead.</p>
     </div>
 );
 
@@ -66,7 +66,7 @@ const DisplayData = ({ data }: { data: AILeadEnrichmentOutput }) => {
         <div className="space-y-6">
             {data.summary && (
                 <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2"><BrainCircuit className="h-4 w-4" /> Rezumat</h4>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2"><BrainCircuit className="h-4 w-4" /> Summary</h4>
                     <p className="text-sm text-muted-foreground">{data.summary}</p>
                 </div>
             )}
@@ -74,7 +74,7 @@ const DisplayData = ({ data }: { data: AILeadEnrichmentOutput }) => {
                 <>
                 <Separator />
                 <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2"><Users className="h-4 w-4" /> Profile Social Media</h4>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2"><Users className="h-4 w-4" /> Social Media Profiles</h4>
                     <ul className="space-y-2">
                         {data.socialMedia.map((profile) => (
                             <li key={profile.url} className="text-sm">
@@ -91,7 +91,7 @@ const DisplayData = ({ data }: { data: AILeadEnrichmentOutput }) => {
                 <>
                 <Separator />
                 <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2"><Newspaper className="h-4 w-4" /> Știri Recente</h4>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2"><Newspaper className="h-4 w-4" /> Recent News</h4>
                      <ul className="space-y-3">
                         {data.recentNews.map((news) => (
                             <li key={news.url} className="text-sm">
@@ -126,7 +126,7 @@ export function AIEnrichmentDialog({ lead, children }: AIEnrichmentDialogProps) 
         setData(result);
       } catch (e) {
         console.error("Failed to generate AI enrichment:", e);
-        setError("Serviciul de analiză AI nu a putut procesa cererea. Vă rugăm să încercați din nou mai târziu.");
+        setError("The AI analysis service could not process the request. Please try again later.");
       } finally {
         setIsLoading(false);
       }
@@ -142,10 +142,10 @@ export function AIEnrichmentDialog({ lead, children }: AIEnrichmentDialogProps) 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-headline">
             <Sparkles className="h-5 w-5 text-accent" />
-            Îmbogățire Date cu AI
+            AI Data Enrichment
           </DialogTitle>
           <DialogDescription>
-            AI-ul analizează surse publice pentru a găsi informații suplimentare despre <strong>{lead.full_name || lead.company_name}</strong>.
+            AI is analyzing public sources to find additional information about <strong>{lead.full_name || lead.company_name}</strong>.
           </DialogDescription>
         </DialogHeader>
         <div className="prose prose-sm dark:prose-invert max-w-none py-4 max-h-[60vh] overflow-y-auto">
