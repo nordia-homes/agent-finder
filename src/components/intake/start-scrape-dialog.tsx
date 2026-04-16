@@ -66,8 +66,8 @@ export function StartScrapeDialog({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Error starting scrape job:", error);
       toast({ 
-        title: "Error", 
-        description: (error as Error).message || "Failed to start scrape job. Please check the console for details.", 
+        title: "Scrape Job Failed", 
+        description: "The scraping service encountered an error. This might be a temporary issue. Please try again later.", 
         variant: "destructive"
       });
     } finally {
