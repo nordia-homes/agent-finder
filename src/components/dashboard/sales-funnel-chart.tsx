@@ -1,47 +1,27 @@
 'use client';
 
-import { Funnel, FunnelChart, LabelList, ResponsiveContainer, Tooltip } from 'recharts';
+import { Bar, BarChart, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const data = [
-  { value: 1254, name: 'Total Leads', fill: 'hsl(var(--chart-1))' },
-  { value: 512, name: 'Contacted', fill: 'hsl(var(--chart-2))' },
-  { value: 180, name: 'Replied', fill: 'hsl(var(--chart-3))' },
-  { value: 42, name: 'Demo Booked', fill: 'hsl(var(--chart-4))' },
-  { value: 15, name: 'Won', fill: 'hsl(var(--chart-5))' },
+  { name: 'Total Leads', value: 1254, fill: 'hsl(var(--chart-1))' },
+  { name: 'Contacted', value: 512, fill: 'hsl(var(--chart-2))' },
+  { name: 'Replied', value: 180, fill: 'hsl(var(--chart-3))' },
+  { name: 'Demo Booked', value: 42, fill: 'hsl(var(--chart-4))' },
+  { name: 'Won', value: 15, fill: 'hsl(var(--chart-5))' },
 ];
 
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
-    const data = payload[0];
-    // This is a bit of a hack to get the previous data point from the processed data
-    const prevDataValue = data.payload.prevValue;
-    let conversionRate = null;
-    if (prevDataValue) {
-      conversionRate = ((data.value / prevDataValue) * 100).toFixed(1);
-    }
-
     return (
       <div className="rounded-lg border bg-background p-2 shadow-sm">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex flex-col">
-            <span className="text-[0.70rem] uppercase text-muted-foreground">
-              {data.name}
-            </span>
-            <span className="font-bold text-foreground">
-              {data.value}
-            </span>
-          </div>
-          {conversionRate && (
-            <div className="flex flex-col text-right">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
-                Conversion
-              </span>
-              <span className="font-bold text-accent-foreground" style={{color: 'hsl(var(--primary))'}}>
-                {conversionRate}%
-              </span>
-            </div>
-          )}
+        <div className="grid grid-cols-1 gap-1">
+          <span className="text-[0.85rem] font-semibold text-foreground">
+            {label}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            Count: <span className="font-bold">{payload[0].value}</span>
+          </span>
         </div>
       </div>
     );
@@ -52,26 +32,34 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 
 export function SalesFunnelChart() {
-    // Add previous data point to each item for conversion calculation in the tooltip
-    const processedData = data.map((item, index) => ({
-        ...item,
-        prevValue: index > 0 ? data[index - 1].value : null,
-    }));
-
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle className="font-headline">Sales Funnel</CardTitle>
+        <CardTitle className="font-headline">Sales Pipeline</CardTitle>
         <CardDescription>From initial lead to closed deal.</CardDescription>
       </CardHeader>
-      <CardContent className="h-[300px]">
+      <CardContent className="h-[300px] pt-4">
         <ResponsiveContainer width="100%" height="100%">
-          <FunnelChart>
-            <Tooltip content={<CustomTooltip />} />
-            <Funnel dataKey="value" data={processedData} isAnimationActive>
-              <LabelList position="right" fill="hsl(var(--foreground))" stroke="none" dataKey="name" />
-            </Funnel>
-          </FunnelChart>
+            <BarChart data={data} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border) / 0.5)" />
+                <XAxis type="number" hide />
+                <YAxis type="category" dataKey="name" hide />
+                <Tooltip cursor={{ fill: 'hsl(var(--muted))' }} content={<CustomTooltip />} />
+                <Bar dataKey="value" radius={[4, 4, 4, 4]}>
+                    <LabelList 
+                        dataKey="name" 
+                        position="insideLeft" 
+                        offset={8}
+                        className="fill-background font-medium"
+                        />
+                    <LabelList 
+                        dataKey="value" 
+                        position="right" 
+                        offset={8}
+                        className="fill-foreground font-semibold"
+                        />
+                </Bar>
+            </BarChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>
