@@ -7,9 +7,8 @@ import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { TasksOverview } from '@/components/dashboard/tasks-overview';
 import { SalesFunnelChart } from '@/components/dashboard/sales-funnel-chart';
 import { WelcomeBanner } from '@/components/dashboard/welcome-banner';
-import { useCollection } from '@/firebase';
+import { useCollection, useFirestore } from '@/firebase';
 import { collection, query, where, Timestamp } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 import type { Lead } from '@/lib/types';
 
 export default function DashboardPage() {
@@ -22,13 +21,17 @@ export default function DashboardPage() {
 
   const { data: leads, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const { todayTimestamp, tomorrowTimestamp } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const todayTimestamp = Timestamp.fromDate(today);
-  const tomorrowTimestamp = Timestamp.fromDate(tomorrow);
+    return {
+      todayTimestamp: Timestamp.fromDate(today),
+      tomorrowTimestamp: Timestamp.fromDate(tomorrow),
+    };
+  }, []);
 
   const newLeadsTodayQuery = useMemo(() => {
     if (!firestore) return null;
