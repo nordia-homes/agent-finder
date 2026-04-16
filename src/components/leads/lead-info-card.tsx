@@ -5,7 +5,9 @@ import { Mail, MessageSquare, Phone, MapPin, Sparkles } from "lucide-react";
 import { AIEnrichmentDialog } from "./ai-enrichment-dialog";
 
 export function LeadInfoCard({ lead }: { lead: Lead }) {
-    const whatsappPhoneNumber = lead.phone.replace(/[^0-9]/g, '');
+    const hasPhone = !!lead.phone;
+    const hasEmail = !!lead.email;
+    const whatsappPhoneNumber = (lead.phone || '').replace(/[^0-9]/g, '');
 
     return (
         <Card className="bg-gradient-to-br from-primary/90 to-primary text-primary-foreground overflow-hidden">
@@ -21,25 +23,25 @@ export function LeadInfoCard({ lead }: { lead: Lead }) {
                             </div>
                              <div className="flex items-center gap-2">
                                 <Phone className="h-4 w-4" />
-                                <span>{lead.phone}</span>
+                                <span>{lead.phone || 'N/A'}</span>
                             </div>
                         </div>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center justify-start md:justify-end gap-2 w-full md:w-auto">
-                         <Button asChild variant="secondary" className="bg-white/90 text-primary hover:bg-white">
-                            <a href={`https://wa.me/${whatsappPhoneNumber}`} target="_blank" rel="noopener noreferrer">
+                         <Button asChild variant="secondary" className="bg-white/90 text-primary hover:bg-white" disabled={!hasPhone}>
+                            <a href={hasPhone ? `https://wa.me/${whatsappPhoneNumber}` : undefined} target="_blank" rel="noopener noreferrer">
                                 <MessageSquare />
                                 WhatsApp
                             </a>
                         </Button>
-                        <Button asChild variant="outline" className="bg-transparent border-white/50 text-white hover:bg-white/10">
-                            <a href={`tel:${lead.phone}`}>
+                        <Button asChild variant="outline" className="bg-transparent border-white/50 text-white hover:bg-white/10" disabled={!hasPhone}>
+                            <a href={hasPhone ? `tel:${lead.phone}` : undefined}>
                                 <Phone />
                                 Call
                             </a>
                         </Button>
-                        <Button asChild variant="outline" className="bg-transparent border-white/50 text-white hover:bg-white/10">
-                            <a href={`mailto:${lead.email}`}>
+                        <Button asChild variant="outline" className="bg-transparent border-white/50 text-white hover:bg-white/10" disabled={!hasEmail}>
+                            <a href={hasEmail ? `mailto:${lead.email}` : undefined}>
                                 <Mail />
                                 Email
                             </a>
