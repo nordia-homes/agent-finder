@@ -15,6 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { TasksSection } from '@/components/leads/tasks-section';
+import { AIExplanationDialog } from '@/components/leads/ai-explanation-dialog';
 
 
 const classificationStyles: Record<Lead['classification'], string> = {
@@ -122,7 +123,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <TabsTrigger value="tasks"><CheckSquare className="mr-2 h-4 w-4"/>Tasks</TabsTrigger>
             </TabsList>
             <TabsContent value="notes" className="mt-6">
-              <NotesSection notes={leadNotes} />
+              <NotesSection notes={leadNotes} leadName={lead.full_name || lead.company_name} />
             </TabsContent>
             <TabsContent value="activity" className="mt-6">
               <ActivityTimeline activities={leadActivities} />
@@ -145,6 +146,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <CardTitle className="text-white font-headline">Independent Score</CardTitle>
                           <CardDescription className="text-white/80">Overall lead quality rating</CardDescription>
                       </div>
+                      <AIExplanationDialog lead={lead} />
                   </div>
                 </div>
                 

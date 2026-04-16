@@ -17,7 +17,7 @@ import { users } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 
 
-export function NotesSection({ notes: initialNotes }: { notes: Activity[] }) {
+export function NotesSection({ notes: initialNotes, leadName }: { notes: Activity[], leadName: string }) {
     const [notes, setNotes] = useState<Activity[]>(initialNotes);
     const [newNote, setNewNote] = useState('');
     const { toast } = useToast();
@@ -34,7 +34,7 @@ export function NotesSection({ notes: initialNotes }: { notes: Activity[] }) {
 
         const noteToAdd: Activity = {
             id: `note-${Date.now()}`,
-            lead_name: '', // This is not available but also not needed for the display logic here
+            lead_name: leadName,
             event_type: 'note_added',
             channel: 'system',
             description: newNote,
