@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Import } from "@/lib/types";
 import { format } from "date-fns";
-import { CheckCircle, XCircle, Copy, Briefcase, Globe, AtSign, Database, List, Calendar, Hash, Phone, MapPin } from "lucide-react";
+import { CheckCircle, XCircle, Copy, Briefcase, Globe, AtSign, Database, List, Calendar, Hash, Phone, MapPin, FileText, Star } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 
 
@@ -28,14 +28,14 @@ interface IntakeDetailDrawerProps {
   onMarkDuplicate: (id: string) => void;
 }
 
-const DetailItem = ({ label, value, icon: Icon }: { label: string; value?: React.ReactNode, icon: React.ElementType }) => {
+const DetailItem = ({ label, value, icon: Icon, isUrl = false }: { label: string; value?: React.ReactNode, icon: React.ElementType, isUrl?: boolean }) => {
     if (!value) return null;
     return (
         <div className="flex items-start gap-3">
             <Icon className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
             <div>
                 <p className="text-xs text-muted-foreground">{label}</p>
-                <div className="font-medium text-sm">{value}</div>
+                <div className={cn("font-medium text-sm", isUrl && "truncate")}>{value}</div>
             </div>
         </div>
     );
@@ -54,6 +54,7 @@ export function IntakeDetailDrawer({ open, onOpenChange, selectedImport, onAppro
       phone,
       email,
       website,
+      description,
       source,
       source_url,
       active_listings_count,
@@ -61,10 +62,12 @@ export function IntakeDetailDrawer({ open, onOpenChange, selectedImport, onAppro
       classification,
       review_status,
       importedAt,
-      jobId
+      jobId,
+      pageNumber,
+      pageUrl
   } = selectedImport;
 
-  const name = full_name || company_name;
+  const name = company_name || full_name;
   
   const classificationStyles: Record<NonNullable<Import['classification']>, string> = {
     likely_independent: 'bg-green-100 text-green-800 border-green-200',
@@ -103,14 +106,16 @@ export function IntakeDetailDrawer({ open, onOpenChange, selectedImport, onAppro
                 <DetailItem label="Phone" value={phone} icon={Phone} />
                 <DetailItem label="Email" value={<a href={`mailto:${email}`} className="text-primary hover:underline">{email}</a>} icon={AtSign} />
                 <DetailItem label="Website" value={<a href={website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{website}</a>} icon={Globe} />
+                <DetailItem label="Description" value={description} icon={FileText} />
                 <Separator />
                 <DetailItem label="Source" value={source} icon={Database} />
-                 <DetailItem label="Source URL" value={<a href={source_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate block">{source_url}</a>} icon={Globe} />
                 <DetailItem label="Active Listings" value={active_listings_count} icon={List} />
                 <DetailItem label="Independent Score" value={independent_score} icon={Star} />
                 <Separator />
                 <DetailItem label="Imported At" value={format(importedAt.toDate(), 'PPP p')} icon={Calendar} />
                 <DetailItem label="Job ID" value={jobId} icon={Hash} />
+                <DetailItem label="Source Page Number" value={pageNumber} icon={Hash} />
+                <DetailItem label="Source Page URL" value={<a href={pageUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{pageUrl}</a>} icon={Globe} isUrl />
             </div>
         </ScrollArea>
         <SheetFooter className="p-4 bg-muted/50 border-t mt-auto">

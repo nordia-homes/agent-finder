@@ -18,12 +18,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { startScrapeJob } from '@/app/(app)/intake/actions';
+import { startCustomScrapeJob } from '@/app/(app)/intake/actions';
 
 
 const scrapeFormSchema = z.object({
-  city: z.string().min(1, 'City is required.'),
+  startUrl: z.string().url('Please enter a valid URL.'),
   source: z.string().min(1, 'Source is required.'),
+  maxPages: z.coerce.number().positive().optional(),
+  maxListingsForImport: z.coerce.number().positive().optional(),
 });
 
 type ScrapeFormValues = z.infer<typeof scrapeFormSchema>;
@@ -36,15 +38,15 @@ export function StartScrapeDialog({ children }: { children: React.ReactNode }) {
   const form = useForm<ScrapeFormValues>({
     resolver: zodResolver(scrapeFormSchema),
     defaultValues: {
-      city: 'Cluj-Napoca',
-      source: 'manual_test',
+      startUrl: 'https://www.imobiliare.ro/agentii/bucuresti',
+      source: 'manual_custom',
     },
   });
 
   const onSubmit = async (data: ScrapeFormValues) => {
     setIsSubmitting(true);
     try {
-      const result = await startScrapeJob(data);
+      const result = await startCustomScrapeJob(data);
 
       if (!result.success) {
         throw new Error(result.error);
@@ -53,21 +55,18 @@ export function StartScrapeDialog({ children }: { children: React.ReactNode }) {
       const resultData = result.data as { jobId: string };
 
       toast({
-        title: 'Scrape Job Started',
-        description: `Successfully started scraping for ${data.city}. Job ID: ${resultData.jobId}`,
+        title: 'Custom Scrape Job Queued',
+        description: `Successfully started custom scrape job with ID: ${resultData.jobId}`,
       });
-      
-      // We don't refresh data here as it can take time for imports to show up.
-      // The user can manually refresh or we can implement polling later.
       
       setOpen(false);
       form.reset();
 
     } catch (error) {
-      console.error("Error starting scrape job:", error);
+      console.error("Error starting custom scrape job:", error);
       toast({ 
         title: "Scrape Job Failed", 
-        description: "The scraping service encountered an error. This might be a temporary issue. Please try again later.", 
+        description: "The scraping service encountered an error. Please check the logs or try again later.", 
         variant: "destructive"
       });
     } finally {
@@ -78,24 +77,23 @@ export function StartScrapeDialog({ children }: { children: React.ReactNode }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Start New Scrape Job</DialogTitle>
+          <DialogTitle>Start Custom Scrape</DialogTitle>
           <DialogDescription>
-            Enter the details for the new scraping job. Click run when you're done.
+            Queue a new custom scraping job. The default Imobiliare scraping runs automatically.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="space-y-4 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="city"
+                name="startUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>City</FormLabel>
+                    <FormLabel>Start URL</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Cluj-Napoca" {...field} />
+                      <Input placeholder="https://example.com/agent-list" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -106,15 +104,42 @@ export function StartScrapeDialog({ children }: { children: React.ReactNode }) {
                 name="source"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Source</FormLabel>
+                    <FormLabel>Source Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., manual_test" {...field} />
+                      <Input placeholder="e.g., custom_source" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="maxPages"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Max Pages</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="10" {...field} onChange={event => field.onChange(+event.target.value)} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="maxListingsForImport"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Max Listings</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="150" {...field} onChange={event => field.onChange(+event.target.value)} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

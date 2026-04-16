@@ -37,7 +37,7 @@ interface DataTableProps<TData, TValue> {
   isLoading?: boolean;
 }
 
-export function DataTable<TData extends {id: string, independent_score?: number, classification?: string}, TValue>({
+export function DataTable<TData extends {id: string, independent_score?: number, classification?: string, company_name?: string, full_name?: string}, TValue>({
   columns,
   data,
   onRowClick,
@@ -45,10 +45,9 @@ export function DataTable<TData extends {id: string, independent_score?: number,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'importedAt', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [globalFilter, setGlobalFilter] = useState('');
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
-      company_name: false,
       phone: false,
-      email: false
   });
 
 
@@ -60,13 +59,22 @@ export function DataTable<TData extends {id: string, independent_score?: number,
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
+      globalFilter,
     },
+    globalFilterFn: (row, columnId, filterValue) => {
+        const search = filterValue.toLowerCase();
+        const value = row.original as Import;
+        const companyName = value.company_name?.toLowerCase() || '';
+        const fullName = value.full_name?.toLowerCase() || '';
+        return companyName.includes(search) || fullName.includes(search);
+    }
   });
 
   const cities = useMemo(() => {
@@ -96,16 +104,14 @@ export function DataTable<TData extends {id: string, independent_score?: number,
     <div>
       <div className="flex flex-wrap items-center gap-4 py-4">
         <Input
-          placeholder="Search by name, company, email..."
-          value={(table.getColumn("full_name")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("full_name")?.setFilterValue(event.target.value)
-          }
+          placeholder="Search by name or company..."
+          value={globalFilter}
+          onChange={(event) => setGlobalFilter(event.target.value)}
           className="max-w-xs bg-card"
         />
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
             <Select onValueChange={(value) => table.getColumn('city')?.setFilterValue(value === 'all' ? undefined : value)}>
-                <SelectTrigger className="w-[180px] bg-card">
+                <SelectTrigger className="w-[160px] bg-card">
                     <SelectValue placeholder="Filter by City" />
                 </SelectTrigger>
                 <SelectContent>
@@ -115,7 +121,7 @@ export function DataTable<TData extends {id: string, independent_score?: number,
             </Select>
 
             <Select onValueChange={(value) => table.getColumn('source')?.setFilterValue(value === 'all' ? undefined : value)}>
-                <SelectTrigger className="w-[180px] bg-card">
+                <SelectTrigger className="w-[160px] bg-card">
                     <SelectValue placeholder="Filter by Source" />
                 </SelectTrigger>
                 <SelectContent>
@@ -150,7 +156,7 @@ export function DataTable<TData extends {id: string, independent_score?: number,
             </Select>
         </div>
         <div className="flex items-center gap-2 w-full max-w-xs">
-            <span className="text-sm text-muted-foreground w-28">Score: {scoreRange[0]} - {scoreRange[1]}</span>
+            <span className="text-sm text-muted-foreground w-32 shrink-0">Score: {scoreRange[0]} - {scoreRange[1]}</span>
             <Slider
                 defaultValue={[0, 100]}
                 min={0}

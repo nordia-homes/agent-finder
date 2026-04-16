@@ -23,45 +23,42 @@ const reviewStatusStyles: Record<Import['review_status'], string> = {
 
 export const columns: ColumnDef<Import>[] = [
   {
-    accessorKey: 'full_name',
+    accessorKey: 'company_name',
     header: ({ column }) => (
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         className="-ml-4"
       >
-        Name
+        Company
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
     cell: ({ row }) => {
       const imp = row.original;
-      const name = imp.full_name || imp.company_name;
+      const name = imp.company_name || imp.full_name;
       return (
         <div className="flex items-center gap-3">
           <div>
             <div className="font-medium">{name}</div>
-            <div className="text-xs text-muted-foreground">{imp.email}</div>
+            <div className="text-xs text-muted-foreground">{imp.city}</div>
           </div>
         </div>
       );
     },
   },
   {
-    accessorKey: 'company_name',
-    header: 'Company',
-  },
-  {
-    accessorKey: 'city',
-    header: 'City',
-  },
-  {
     accessorKey: 'phone',
     header: 'Phone',
   },
   {
-    accessorKey: 'source',
+    accessorKey: 'source_url',
     header: 'Source',
+    cell: ({ row }) => {
+        const url = row.original.source_url;
+        if (!url) return '-';
+        return <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{row.original.source}</a>
+    }
   },
   {
     accessorKey: 'active_listings_count',

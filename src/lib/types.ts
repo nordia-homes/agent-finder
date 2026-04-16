@@ -16,6 +16,7 @@ export type Lead = {
   source_url: string;
   active_listings_count: number;
   independent_score: number;
+  description?: string;
   classification: 'likely_independent' | 'possible_independent' | 'agency';
   lead_status: 'new' | 'reviewed' | 'qualified' | 'contacted' | 'replied' | 'demo_booked' | 'closed_won' | 'closed_lost' | 'not_relevant';
   outreach_status: 'not_started' | 'in_sequence' | 'paused' | 'completed' | 'replied' | 'bounced';
@@ -93,6 +94,7 @@ export type Import = {
   phone?: string;
   email?: string;
   website?: string;
+  description?: string;
   source?: string;
   source_url?: string;
   active_listings_count?: number;
@@ -101,4 +103,22 @@ export type Import = {
   review_status: 'pending_review' | 'approved' | 'rejected' | 'duplicate';
   importedAt: Timestamp;
   jobId?: string;
+  pageNumber?: number;
+  pageUrl?: string;
 };
+
+export type ScrapeJob = {
+    id: string;
+    status: 'running' | 'completed' | 'failed';
+    source: string;
+    startUrl: string;
+    pagesProcessed: number;
+    totalImported: number;
+    currentPageNumber: number;
+    currentPageUrl: string;
+    nextPageUrl: string;
+    error: string | null;
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
+    finishedAt: Timestamp | null;
+}

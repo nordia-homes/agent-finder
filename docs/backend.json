@@ -45,6 +45,7 @@
         "source_url": { "type": "string", "format": "uri" },
         "active_listings_count": { "type": "number" },
         "independent_score": { "type": "number" },
+        "description": { "type": "string" },
         "classification": { "type": "string", "enum": ["likely_independent", "possible_independent", "agency"] },
         "lead_status": { "type": "string", "enum": ["new", "reviewed", "qualified", "contacted", "replied", "demo_booked", "closed_won", "closed_lost", "not_relevant"] },
         "outreach_status": { "type": "string", "enum": ["not_started", "in_sequence", "paused", "completed", "replied", "bounced"] },
@@ -125,6 +126,7 @@
         "phone": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "website": { "type": "string", "format": "uri" },
+        "description": { "type": "string" },
         "source": { "type": "string" },
         "source_url": { "type": "string", "format": "uri" },
         "active_listings_count": { "type": "number" },
@@ -132,9 +134,31 @@
         "classification": { "type": "string", "enum": ["likely_independent", "possible_independent", "agency"] },
         "review_status": { "type": "string", "enum": ["pending_review", "approved", "rejected", "duplicate"] },
         "importedAt": { "type": "string", "format": "date-time" },
-        "jobId": { "type": "string" }
+        "jobId": { "type": "string" },
+        "pageNumber": { "type": "number" },
+        "pageUrl": { "type": "string", "format": "uri" }
       },
       "required": ["review_status", "importedAt"]
+    },
+    "ScrapeJob": {
+        "title": "Scrape Job",
+        "description": "Represents a scraping job instance.",
+        "type": "object",
+        "properties": {
+            "status": { "type": "string", "enum": ["running", "completed", "failed"] },
+            "source": { "type": "string" },
+            "startUrl": { "type": "string", "format": "uri" },
+            "pagesProcessed": { "type": "number" },
+            "totalImported": { "type": "number" },
+            "currentPageNumber": { "type": "number" },
+            "currentPageUrl": { "type": "string", "format": "uri" },
+            "nextPageUrl": { "type": "string", "format": "uri" },
+            "error": { "type": ["string", "null"] },
+            "createdAt": { "type": "string", "format": "date-time" },
+            "updatedAt": { "type": "string", "format": "date-time" },
+            "finishedAt": { "type": ["string", "null"], "format": "date-time" }
+        },
+        "required": ["status", "source", "createdAt", "updatedAt"]
     }
   },
   "auth": {
@@ -164,6 +188,10 @@
     "/imports/{importId}": {
       "schema": { "$ref": "#/entities/Import" },
       "description": "Stores raw scraped data for review and intake."
+    },
+    "/scrape_jobs/{jobId}": {
+        "schema": { "$ref": "#/entities/ScrapeJob" },
+        "description": "Stores logs and status of scraping jobs."
     }
   }
 }

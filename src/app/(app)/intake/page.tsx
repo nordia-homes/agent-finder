@@ -3,65 +3,44 @@
 import { useMemo, useState } from 'react';
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
-import { Rocket, Users, FileClock, CheckCircle2, XCircle, Copy, Star } from "lucide-react";
+import { Rocket } from "lucide-react";
 import { useCollection, useFirestore, useUser } from '@/firebase';
-import { collection, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
-import type { Import } from '@/lib/types';
+import { collection, serverTimestamp, writeBatch, doc, query, orderBy, limit } from 'firebase/firestore';
+import type { Import, ScrapeJob } from '@/lib/types';
 import { DataTable } from '@/components/intake/data-table';
 import { columns } from '@/components/intake/columns';
-import { Card } from '@/components/ui/card';
 import { IntakeDetailDrawer } from '@/components/intake/intake-detail-drawer';
 import { StartScrapeDialog } from '@/components/intake/start-scrape-dialog';
 import { useToast } from '@/hooks/use-toast';
-
-const KpiCard = ({ title, value, icon: Icon, isLoading }: { title: string, value: number, icon: React.ElementType, isLoading: boolean }) => (
-    <Card className="p-4">
-        <div className="flex items-center">
-            <div className="p-2 bg-muted rounded-md mr-4">
-                <Icon className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div>
-                <p className="text-sm text-muted-foreground">{title}</p>
-                {isLoading ? <div className="h-6 w-10 bg-muted animate-pulse rounded-md" /> : <p className="text-2xl font-bold">{value}</p>}
-            </div>
-        </div>
-    </Card>
-)
+import { ScrapeJobStatus } from '@/components/intake/scrape-job-status';
 
 export default function IntakePage() {
   const [selectedImport, setSelectedImport] = useState<Import | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+
+  const scrapeJobsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'scrape_jobs'), orderBy('createdAt', 'desc'), limit(1));
+  }, [firestore]);
 
   const importsQuery = useMemo(() => {
     if (!firestore) return null;
     return collection(firestore, 'imports');
   }, [firestore]);
 
-  const { data: imports, loading, error } = useCollection<Import>(importsQuery);
+  const { data: scrapeJobs, loading: jobsLoading } = useCollection<ScrapeJob>(scrapeJobsQuery);
+  const { data: imports, loading: importsLoading, error } = useCollection<Import>(importsQuery);
 
-  const kpiData = useMemo(() => {
-    const data = imports || [];
-    return {
-        total: data.length,
-        pending: data.filter(i => i.review_status === 'pending_review').length,
-        likelyIndependent: data.filter(i => i.classification === 'likely_independent').length,
-        approved: data.filter(i => i.review_status === 'approved').length,
-        rejected: data.filter(i => i.review_status === 'rejected').length,
-        duplicate: data.filter(i => i.review_status === 'duplicate').length
-    };
-  }, [imports]);
+  const latestJob = useMemo(() => scrapeJobs?.[0], [scrapeJobs]);
 
   const handleRowClick = (imp: Import) => {
     setSelectedImport(imp);
-    setIsDrawerOpen(true);
   };
   
   const handleDrawerClose = () => {
-    setIsDrawerOpen(false);
     setSelectedImport(null);
   }
   
@@ -93,6 +72,7 @@ export default function IntakePage() {
         phone: imp.phone || null,
         email: imp.email || null,
         website: imp.website || null,
+        description: imp.description || null,
         source: imp.source || null,
         source_url: imp.source_url || null,
         active_listings_count: imp.active_listings_count || 0,
@@ -129,30 +109,23 @@ export default function IntakePage() {
         <StartScrapeDialog>
             <Button>
                 <Rocket className="mr-2 h-4 w-4" />
-                Start Scrape
+                Start Custom Scrape
             </Button>
         </StartScrapeDialog>
       </PageHeader>
       
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <KpiCard title="Total Imports" value={kpiData.total} icon={Users} isLoading={loading} />
-        <KpiCard title="Pending Review" value={kpiData.pending} icon={FileClock} isLoading={loading} />
-        <KpiCard title="Likely Independent" value={kpiData.likelyIndependent} icon={Star} isLoading={loading} />
-        <KpiCard title="Approved" value={kpiData.approved} icon={CheckCircle2} isLoading={loading} />
-        <KpiCard title="Rejected" value={kpiData.rejected} icon={XCircle} isLoading={loading} />
-        <KpiCard title="Duplicate" value={kpiData.duplicate} icon={Copy} isLoading={loading} />
-      </div>
-
+      <ScrapeJobStatus job={latestJob} totalImports={imports?.length} isLoading={jobsLoading} />
+      
       <DataTable 
         columns={columns} 
         data={imports || []} 
         onRowClick={handleRowClick}
-        isLoading={loading}
+        isLoading={importsLoading}
       />
 
       <IntakeDetailDrawer
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
+        open={!!selectedImport}
+        onOpenChange={(isOpen) => !isOpen && handleDrawerClose()}
         selectedImport={selectedImport}
         onApprove={handleApprove}
         onReject={(id) => handleUpdateStatus(id, 'rejected')}
