@@ -5,19 +5,22 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { DataTable } from "@/components/leads/data-table";
 import { columns } from "@/components/leads/columns";
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useUser } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Lead } from '@/lib/types';
 
 export default function LeadsPage() {
   const firestore = useFirestore();
+  const { user, loading: userLoading } = useUser();
 
   const leadsQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return collection(firestore, 'leads');
-  }, [firestore]);
+  }, [firestore, user]);
 
-  const { data: leads, loading, error } = useCollection<Lead>(leadsQuery);
+  const { data: leads, loading: leadsLoading, error } = useCollection<Lead>(leadsQuery);
+
+  const isLoading = userLoading || leadsLoading;
 
   return (
     <div>
@@ -27,7 +30,7 @@ export default function LeadsPage() {
           Add Lead
         </Button>
       </PageHeader>
-      <DataTable columns={columns} data={leads || []} />
+      <DataTable columns={columns} data={leads || []} isLoading={isLoading} />
     </div>
   );
 }

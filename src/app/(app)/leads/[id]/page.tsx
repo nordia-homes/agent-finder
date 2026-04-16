@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { notFound, useParams } from 'next/navigation';
-import { useDoc, useCollection, useFirestore } from '@/firebase';
+import { useDoc, useCollection, useFirestore, useUser } from '@/firebase';
 import { doc, collection, query, where } from 'firebase/firestore';
 
 import { CheckSquare, FileText, History, Mail, MessageSquare, Briefcase, Globe, AtSign, Database, List, Calendar, Phone } from 'lucide-react';
@@ -46,27 +46,28 @@ export default function LeadDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const firestore = useFirestore();
+  const { user, loading: userLoading } = useUser();
 
   const leadRef = useMemo(() => {
-    if (!firestore || !id) return null;
+    if (!firestore || !id || !user) return null;
     return doc(firestore, 'leads', id);
-  }, [firestore, id]);
+  }, [firestore, id, user]);
 
   const { data: lead, loading: leadLoading, error } = useDoc<Lead>(leadRef);
 
   const leadName = lead?.full_name || lead?.company_name;
 
   const activitiesQuery = useMemo(() => {
-    if (!firestore || !leadName) return null;
+    if (!firestore || !leadName || !user) return null;
     return query(collection(firestore, 'activities'), where('lead_name', '==', leadName));
-  }, [firestore, leadName]);
+  }, [firestore, leadName, user]);
 
   const { data: leadActivities, loading: activitiesLoading } = useCollection<Activity>(activitiesQuery);
   
   const tasksQuery = useMemo(() => {
-    if (!firestore || !leadName) return null;
+    if (!firestore || !leadName || !user) return null;
     return query(collection(firestore, 'tasks'), where('lead_name', '==', leadName));
-  }, [firestore, leadName]);
+  }, [firestore, leadName, user]);
 
   const { data: leadTasks, loading: tasksLoading } = useCollection<Task>(tasksQuery);
   
@@ -75,11 +76,11 @@ export default function LeadDetailPage() {
     console.error(error);
   }
   
-  if (!lead && !leadLoading) {
+  if (!lead && !(userLoading || leadLoading)) {
     notFound();
   }
   
-  if (leadLoading || !lead) {
+  if (userLoading || leadLoading || !lead) {
       return (
         <div className="space-y-6">
             <Skeleton className="h-10 w-full" />

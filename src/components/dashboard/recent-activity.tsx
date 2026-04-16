@@ -13,9 +13,9 @@ export function RecentActivity() {
   const { user } = useUser();
 
   const activitiesQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'activities'), orderBy('timestamp', 'desc'), limit(5));
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: recentActivities, loading } = useCollection<Activity>(activitiesQuery);
 

@@ -18,18 +18,18 @@ export default function IntakePage() {
   const [selectedImport, setSelectedImport] = useState<Import | null>(null);
   
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
   const { toast } = useToast();
 
   const scrapeJobsQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'scrape_jobs'), orderBy('createdAt', 'desc'), limit(1));
-  }, [firestore]);
+  }, [firestore, user]);
 
   const importsQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return collection(firestore, 'imports');
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: scrapeJobs, loading: jobsLoading } = useCollection<ScrapeJob>(scrapeJobsQuery);
   const { data: imports, loading: importsLoading, error } = useCollection<Import>(importsQuery);
@@ -114,13 +114,13 @@ export default function IntakePage() {
         </StartScrapeDialog>
       </PageHeader>
       
-      <ScrapeJobStatus job={latestJob} totalImports={imports?.length} isLoading={jobsLoading} />
+      <ScrapeJobStatus job={latestJob} totalImports={imports?.length} isLoading={userLoading || jobsLoading} />
       
       <DataTable 
         columns={columns} 
         data={imports || []} 
         onRowClick={handleRowClick}
-        isLoading={importsLoading}
+        isLoading={userLoading || importsLoading}
       />
 
       <IntakeDetailDrawer
