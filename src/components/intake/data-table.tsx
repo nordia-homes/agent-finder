@@ -1,9 +1,6 @@
 'use client';
 
 import {
-![CDATA['use client';
-
-import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
@@ -117,7 +114,7 @@ export function DataTable<TData extends {id: string, independent_score?: number,
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="all">All Cities</SelectItem>
-                    {cities.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+                    {cities.map(city => <SelectItem key={city as string} value={city as string}>{city}</SelectItem>)}
                 </SelectContent>
             </Select>
 
