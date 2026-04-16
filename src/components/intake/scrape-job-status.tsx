@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { Skeleton } from "../ui/skeleton";
 import { AlertCircle, CheckCircle2, Clock, FileDown, HardDrive, Link, Loader, ServerCrash } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface ScrapeJobStatusProps {
     job?: ScrapeJob;
@@ -52,7 +53,11 @@ export function ScrapeJobStatus({ job, totalImports, isLoading }: ScrapeJobStatu
     
     const timeAgo = (date: any) => {
         if (!date) return '-';
-        return formatDistanceToNow(date.toDate(), { addSuffix: true });
+        try {
+            return formatDistanceToNow(date.toDate(), { addSuffix: true });
+        } catch(e) {
+            return "-"
+        }
     }
 
     return (
@@ -63,14 +68,25 @@ export function ScrapeJobStatus({ job, totalImports, isLoading }: ScrapeJobStatu
             </div>
 
             {job?.error && (
-                <Card className="bg-destructive/10 border-destructive/20 text-destructive-foreground p-4 mb-4">
-                    <div className="flex items-start gap-3">
-                        <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
-                        <div>
-                            <p className="font-bold text-destructive">Error</p>
-                            <p className="text-sm text-destructive/90 font-mono text-xs">{job.error}</p>
-                        </div>
-                    </div>
+                 <Card className="bg-destructive/10 border-destructive/20 p-0 mb-4">
+                     <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="error-details" className="border-none">
+                            <AccordionTrigger className="p-4 hover:no-underline text-destructive-foreground">
+                                 <div className="flex items-start gap-3 text-left">
+                                    <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                                    <div>
+                                        <p className="font-bold text-destructive">Scraping Job Failed</p>
+                                        <p className="text-sm text-destructive/90">A critical error occurred. Click for details.</p>
+                                    </div>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-4 pb-4">
+                                <pre className="text-xs font-mono text-destructive/90 bg-destructive/10 p-2 rounded-md whitespace-pre-wrap break-all">
+                                    {job.error}
+                                </pre>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
                 </Card>
             )}
 
