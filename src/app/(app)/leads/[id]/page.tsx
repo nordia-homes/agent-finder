@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { CheckSquare, FileText, History, Mail, MessageSquare, Briefcase, Globe, AtSign, Database, List, Calendar, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ScoringExplanation } from '@/components/leads/scoring-explanation';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Lead } from '@/lib/types';
@@ -129,7 +128,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <ActivityTimeline activities={leadActivities} />
             </TabsContent>
             <TabsContent value="tasks" className="mt-6">
-                <TasksSection tasks={leadTasks} />
+                <TasksSection tasks={leadTasks} leadName={lead.full_name || lead.company_name} />
             </TabsContent>
           </Tabs>
 
@@ -170,8 +169,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             </CardContent>
           </Card>
-          
-          <ScoringExplanation lead={lead} />
         </div>
       </div>
     </div>

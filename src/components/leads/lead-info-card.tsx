@@ -4,6 +4,8 @@ import type { Lead } from "@/lib/types";
 import { Mail, MessageSquare, Phone, MapPin } from "lucide-react";
 
 export function LeadInfoCard({ lead }: { lead: Lead }) {
+    const whatsappPhoneNumber = lead.phone.replace(/[^0-9]/g, '');
+
     return (
         <Card className="bg-gradient-to-br from-primary/90 to-primary text-primary-foreground overflow-hidden">
             <CardContent className="p-6 relative">
@@ -23,17 +25,23 @@ export function LeadInfoCard({ lead }: { lead: Lead }) {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                         <Button variant="secondary" className="bg-white/90 text-primary hover:bg-white">
-                            <MessageSquare className="mr-2 h-4 w-4" />
-                            WhatsApp
+                         <Button asChild variant="secondary" className="bg-white/90 text-primary hover:bg-white">
+                            <a href={`https://wa.me/${whatsappPhoneNumber}`} target="_blank" rel="noopener noreferrer">
+                                <MessageSquare className="mr-2 h-4 w-4" />
+                                WhatsApp
+                            </a>
                         </Button>
-                        <Button variant="outline" className="bg-transparent border-white/50 text-white hover:bg-white/10">
-                            <Phone className="mr-2 h-4 w-4" />
-                            Call
+                        <Button asChild variant="outline" className="bg-transparent border-white/50 text-white hover:bg-white/10">
+                            <a href={`tel:${lead.phone}`}>
+                                <Phone className="mr-2 h-4 w-4" />
+                                Call
+                            </a>
                         </Button>
-                        <Button variant="outline" className="bg-transparent border-white/50 text-white hover:bg-white/10">
-                            <Mail className="mr-2 h-4 w-4" />
-                            Email
+                        <Button asChild variant="outline" className="bg-transparent border-white/50 text-white hover:bg-white/10">
+                            <a href={`mailto:${lead.email}`}>
+                                <Mail className="mr-2 h-4 w-4" />
+                                Email
+                            </a>
                         </Button>
                     </div>
                 </div>

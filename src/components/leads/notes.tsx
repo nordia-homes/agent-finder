@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,8 +13,43 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 import type { Activity } from "@/lib/types";
+import { users } from '@/lib/data';
+import { useToast } from '@/hooks/use-toast';
 
-export function NotesSection({ notes }: { notes: Activity[] }) {
+
+export function NotesSection({ notes: initialNotes }: { notes: Activity[] }) {
+    const [notes, setNotes] = useState<Activity[]>(initialNotes);
+    const [newNote, setNewNote] = useState('');
+    const { toast } = useToast();
+
+    const handleSaveNote = () => {
+        if (!newNote.trim()) {
+            toast({
+                title: "Note is empty",
+                description: "Please write something before saving.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        const noteToAdd: Activity = {
+            id: `note-${Date.now()}`,
+            lead_name: '', // This is not available but also not needed for the display logic here
+            event_type: 'note_added',
+            channel: 'system',
+            description: newNote,
+            timestamp: new Date().toISOString(),
+            user: users[0], // Assume current user is the first user from data
+        };
+
+        setNotes(prevNotes => [noteToAdd, ...prevNotes]);
+        setNewNote('');
+        toast({
+            title: "Note saved",
+            description: "Your note has been successfully added.",
+        });
+    };
+
     return (
         <div className="space-y-6">
             <Card>
@@ -22,8 +58,13 @@ export function NotesSection({ notes }: { notes: Activity[] }) {
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        <Textarea placeholder="Write your note here..." className="bg-background min-h-[100px]" />
-                        <Button>Save Note</Button>
+                        <Textarea 
+                            placeholder="Write your note here..." 
+                            className="bg-background min-h-[100px]"
+                            value={newNote}
+                            onChange={(e) => setNewNote(e.target.value)}
+                         />
+                        <Button onClick={handleSaveNote}>Save Note</Button>
                     </div>
                 </CardContent>
             </Card>
