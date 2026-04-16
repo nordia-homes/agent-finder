@@ -14,13 +14,6 @@ const classificationStyles: Record<NonNullable<Import['classification']>, string
   agency: 'bg-red-100 text-red-800 border-red-200',
 };
 
-const reviewStatusStyles: Record<Import['review_status'], string> = {
-  pending_review: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  approved: 'bg-blue-100 text-blue-800 border-blue-200',
-  rejected: 'bg-red-100 text-red-800 border-red-200',
-  duplicate: 'bg-gray-100 text-gray-800 border-gray-200',
-};
-
 const phoneStatusStyles: Record<NonNullable<Import['phone_status']>, string> = {
   found: 'bg-green-100 text-green-800 border-green-200',
   missing: 'bg-gray-100 text-gray-800 border-gray-200',
@@ -47,13 +40,24 @@ export const columns: ColumnDef<Import>[] = [
       const imp = row.original;
       const name = imp.company_name || imp.full_name;
       return (
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="font-medium">{name}</div>
-            <div className="text-xs text-muted-foreground">{imp.city}</div>
-          </div>
-        </div>
+        <div className="font-medium">{name}</div>
       );
+    },
+  },
+  {
+    accessorKey: 'city',
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="-ml-4"
+      >
+        City
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    filterFn: (row, id, value) => {
+      return value === row.getValue(id);
     },
   },
   {
@@ -68,7 +72,7 @@ export const columns: ColumnDef<Import>[] = [
         return <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline capitalize">{sourceName}</a>
     },
     filterFn: (row, id, value) => {
-        return value.includes(row.getValue(id));
+        return value === row.getValue(id);
     }
   },
   {
@@ -84,7 +88,7 @@ export const columns: ColumnDef<Import>[] = [
       );
     },
     filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id))
+      return value === row.getValue(id);
     },
   },
   {
@@ -129,7 +133,7 @@ export const columns: ColumnDef<Import>[] = [
       );
     },
     filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id))
+      return value === row.getValue(id);
     },
   },
   {
