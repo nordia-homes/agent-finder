@@ -141,7 +141,7 @@ export function IntakeDetailDrawer({ open, onOpenChange, selectedImport, onAppro
                 <DetailItem label="Independent Score" value={independent_score} icon={Star} />
                 <Separator />
                 <DetailItem label="Listed Since" value={listed_since} icon={Calendar} />
-                <DetailItem label="Imported At" value={format(importedAt.toDate(), 'PPP p')} icon={Calendar} />
+                <DetailItem label="Imported At" value={importedAt ? format(new Date(importedAt), 'PPP p') : '-'} icon={Calendar} />
                 <DetailItem label="Seller ID" value={seller_id} icon={Hash} />
                 <DetailItem label="Job ID" value={jobId} icon={Hash} />
                 <DetailItem label="Source Page Number" value={pageNumber} icon={Hash} />

@@ -1,22 +1,6 @@
-
-import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
-import { firebaseConfig } from './config';
-
-function initializeFirebase() {
-    let app: FirebaseApp, auth: Auth, firestore: Firestore;
-    if (getApps().length) {
-        app = getApp();
-    } else {
-        app = initializeApp(firebaseConfig);
-    }
-    auth = getAuth(app);
-    firestore = getFirestore(app);
-    return { app, auth, firestore };
-}
-
-export { initializeFirebase };
+// Initialization is now handled by src/firebase/client.ts
+// and consumed by src/firebase/client-provider.tsx.
+// This file just exports the hooks and providers.
 
 export { FirebaseProvider, useFirebase, useFirebaseApp, useAuth, useFirestore } from './provider';
 export { FirebaseClientProvider } from './client-provider';

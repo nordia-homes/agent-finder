@@ -1,37 +1,29 @@
-
 'use client';
-import { ReactNode } from 'react';
-import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
-import { firebaseConfig } from './config';
+import { useEffect, useMemo, ReactNode } from 'react';
+import { app, auth, firestore } from './client';
 import { FirebaseProvider } from './provider';
+import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
-interface FirebaseClientProviderProps {
-  children: ReactNode;
-}
+export function FirebaseClientProvider({ children }: { children: ReactNode }) {
+    const value = useMemo(() => ({ app, auth, firestore }), []);
+    
+    useEffect(() => {
+        if (process.env.NODE_ENV !== 'development') return;
 
-let app: FirebaseApp;
-let auth: Auth;
-let firestore: Firestore;
+        // Use a flag to ensure sign-in is only attempted once per component mount.
+        let isSigningIn = false;
 
-// This check prevents re-initializing the app on every render.
-if (!getApps().length) {
-  try {
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    firestore = getFirestore(app);
-  } catch (e) {
-    console.error("Failed to initialize Firebase", e)
-  }
-} else {
-  app = getApp();
-  auth = getAuth(app);
-  firestore = getFirestore(app);
-}
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (!user && !isSigningIn) {
+                isSigningIn = true; // Set flag to prevent re-entry
+                signInAnonymously(auth).catch((error) => {
+                    console.error("Anonymous sign in failed", error);
+                });
+            }
+        });
 
-export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
-    const value = { app, auth, firestore };
+        return () => unsubscribe();
+    }, []); // The empty dependency array ensures this setup runs only once.
 
-  return <FirebaseProvider value={value}>{children}</FirebaseProvider>;
+    return <FirebaseProvider value={value}>{children}</FirebaseProvider>;
 }

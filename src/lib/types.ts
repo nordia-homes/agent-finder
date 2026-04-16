@@ -112,7 +112,7 @@ export type Import = {
   independent_score?: number;
   classification?: 'likely_independent' | 'possible_independent' | 'agency';
   review_status: 'pending_review' | 'approved' | 'rejected' | 'duplicate';
-  importedAt: Timestamp;
+  importedAt: string;
   listed_since?: string;
   jobId?: string;
   pageNumber?: number;

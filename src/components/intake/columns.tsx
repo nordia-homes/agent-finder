@@ -30,14 +30,13 @@ const reviewStatusStyles: Record<Import['review_status'], string> = {
   duplicate: 'bg-gray-100 text-gray-800 border-gray-200',
 };
 
-
 export const columns: ColumnDef<Import>[] = [
   {
     accessorKey: 'company_name',
     header: ({ column }) => (
       <Button
         variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         className="-ml-4"
       >
         Company
@@ -46,28 +45,27 @@ export const columns: ColumnDef<Import>[] = [
     ),
     cell: ({ row }) => {
       const imp = row.original;
-      const name = imp.company_name || imp.full_name;
-      return (
-        <div className="font-medium">{name}</div>
-      );
+      const name = imp.company_name || imp.full_name || '-';
+      return <div className="font-medium">{name}</div>;
     },
   },
   {
     accessorKey: 'city',
     header: 'City',
+    cell: ({ row }) => row.original.city || '-',
     filterFn: (row, id, value) => {
       return value === row.getValue(id);
     },
   },
-   {
+  {
     accessorKey: 'phone',
     header: 'Phone',
     cell: ({ row }) => {
-        const { phone, phone_prefix } = row.original;
-        if (phone) return phone;
-        if (phone_prefix) return `${phone_prefix}...`;
-        return '-';
-    }
+      const { phone, phone_prefix } = row.original;
+      if (phone) return phone;
+      if (phone_prefix) return `${phone_prefix}...`;
+      return '-';
+    },
   },
   {
     accessorKey: 'phone_status',
@@ -75,8 +73,12 @@ export const columns: ColumnDef<Import>[] = [
     cell: ({ row }) => {
       const status = row.original.phone_status;
       if (!status) return null;
+
       return (
-        <Badge variant="outline" className={cn(phoneStatusStyles[status], 'font-medium capitalize')}>
+        <Badge
+          variant="outline"
+          className={cn(phoneStatusStyles[status], 'font-medium capitalize')}
+        >
           {status.replace(/_/g, ' ')}
         </Badge>
       );
@@ -88,13 +90,14 @@ export const columns: ColumnDef<Import>[] = [
   {
     accessorKey: 'active_listings_count',
     header: 'Listings',
+    cell: ({ row }) => row.original.active_listings_count ?? 0,
   },
   {
     accessorKey: 'independent_score',
     header: ({ column }) => (
       <Button
         variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         className="text-right w-full -mr-4 justify-end"
       >
         Score
@@ -104,9 +107,12 @@ export const columns: ColumnDef<Import>[] = [
     cell: ({ row }) => {
       const score = row.original.independent_score;
       if (typeof score !== 'number') return null;
-      const color = score > 70 ? 'text-green-600' : score > 50 ? 'text-amber-600' : 'text-red-600';
-      return <div className={cn("font-medium text-right", color)}>{score}</div>
-    }
+
+      const color =
+        score > 70 ? 'text-green-600' : score > 50 ? 'text-amber-600' : 'text-red-600';
+
+      return <div className={cn('font-medium text-right', color)}>{score}</div>;
+    },
   },
   {
     accessorKey: 'classification',
@@ -114,9 +120,13 @@ export const columns: ColumnDef<Import>[] = [
     cell: ({ row }) => {
       const classification = row.original.classification;
       if (!classification) return null;
+
       return (
-        <Badge variant="outline" className={cn(classificationStyles[classification], 'font-medium capitalize')}>
-          {classification.replace('_', ' ')}
+        <Badge
+          variant="outline"
+          className={cn(classificationStyles[classification], 'font-medium capitalize')}
+        >
+          {classification.replace(/_/g, ' ')}
         </Badge>
       );
     },
@@ -130,7 +140,10 @@ export const columns: ColumnDef<Import>[] = [
     cell: ({ row }) => {
       const status = row.original.review_status;
       return (
-        <Badge variant="outline" className={cn(reviewStatusStyles[status], 'font-medium capitalize')}>
+        <Badge
+          variant="outline"
+          className={cn(reviewStatusStyles[status], 'font-medium capitalize')}
+        >
           {status.replace(/_/g, ' ')}
         </Badge>
       );
@@ -143,35 +156,63 @@ export const columns: ColumnDef<Import>[] = [
     accessorKey: 'source',
     header: 'Source',
     cell: ({ row }) => {
-        const { source, source_url } = row.original;
-        if (!source) return '-';
-        const sourceName = source.replace(/_/g, ' ');
-        if (!source_url) return <span className="capitalize">{sourceName}</span>;
-        return (
-            <div className="flex items-center gap-2">
-                <span className="capitalize">{sourceName}</span>
-                <a href={source_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
-                    <ExternalLink className="h-3 w-3" />
-                </a>
-            </div>
-        )
+      const { source, source_url } = row.original;
+      if (!source) return '-';
+
+      const sourceName = source.replace(/_/g, ' ');
+
+      if (!source_url) {
+        return <span className="capitalize">{sourceName}</span>;
+      }
+
+      return (
+        <div className="flex items-center gap-2">
+          <span className="capitalize">{sourceName}</span>
+          <a
+            href={source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary"
+          >
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+      );
     },
     filterFn: (row, id, value) => {
-        return value === row.getValue(id);
-    }
+      return value === row.getValue(id);
+    },
   },
   {
     accessorKey: 'importedAt',
     header: ({ column }) => (
       <Button
         variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         className="-ml-4"
       >
         Imported
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => format(row.original.importedAt.toDate(), 'MMM d, yyyy'),
+    cell: ({ row }) => {
+      const value = row.original.importedAt;
+
+      if (!value) return '-';
+
+      try {
+        if (typeof value === 'string') {
+          return format(new Date(value), 'MMM d, yyyy');
+        }
+
+        if (typeof (value as { toDate?: () => Date })?.toDate === 'function') {
+          return format((value as { toDate: () => Date }).toDate(), 'MMM d, yyyy');
+        }
+
+        return '-';
+      } catch {
+        return '-';
+      }
+    },
   },
 ];
