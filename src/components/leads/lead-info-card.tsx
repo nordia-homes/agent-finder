@@ -11,7 +11,7 @@ export function LeadInfoCard({ lead }: { lead: Lead }) {
         <Card className="bg-gradient-to-br from-primary/90 to-primary text-primary-foreground overflow-hidden">
             <CardContent className="p-6 relative">
                  <div className="absolute inset-0 bg-black/20 mix-blend-multiply"></div>
-                 <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                 <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
                     <div className="flex-1">
                         <h1 className="text-3xl font-bold font-headline tracking-tight text-white shadow-sm">{lead.full_name || lead.company_name}</h1>
                         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-white/80 mt-2 text-sm">
@@ -25,7 +25,7 @@ export function LeadInfoCard({ lead }: { lead: Lead }) {
                             </div>
                         </div>
                     </div>
-                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
+                    <div className="flex shrink-0 flex-wrap items-center justify-center gap-3 md:ml-auto md:justify-end">
                          <Button asChild variant="secondary" className="bg-white/90 text-primary hover:bg-white">
                             <a href={`https://wa.me/${whatsappPhoneNumber}`} target="_blank" rel="noopener noreferrer">
                                 <MessageSquare className="mr-2 h-4 w-4" />
