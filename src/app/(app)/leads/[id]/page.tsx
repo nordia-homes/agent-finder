@@ -1,11 +1,15 @@
-import { leads, recentActivities, tasks } from '@/lib/data';
-import { notFound } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+'use client';
+
+import { useMemo } from 'react';
+import { notFound, useParams } from 'next/navigation';
+import { useDoc, useCollection, useFirestore } from '@/firebase';
+import { doc, collection, query, where } from 'firebase/firestore';
+
 import { CheckSquare, FileText, History, Mail, MessageSquare, Briefcase, Globe, AtSign, Database, List, Calendar, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { Lead } from '@/lib/types';
+import type { Lead, Activity, Task } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LeadLifecycleTracker } from '@/components/leads/lead-lifecycle-tracker';
 import { LeadInfoCard } from '@/components/leads/lead-info-card';
@@ -16,6 +20,7 @@ import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { TasksSection } from '@/components/leads/tasks-section';
 import { AIExplanationDialog } from '@/components/leads/ai-explanation-dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const classificationStyles: Record<Lead['classification'], string> = {
@@ -37,22 +42,62 @@ const DetailItem = ({ label, value, icon: Icon }: { label: string; value: React.
 );
 
 
-export default function LeadDetailPage({ params }: { params: { id: string } }) {
-  const lead = leads.find((l) => l.id === params.id);
+export default function LeadDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
+  const firestore = useFirestore();
 
-  if (!lead) {
+  const leadRef = useMemo(() => {
+    if (!firestore || !id) return null;
+    return doc(firestore, 'leads', id);
+  }, [firestore, id]);
+
+  const { data: lead, loading: leadLoading, error } = useDoc<Lead>(leadRef);
+
+  const leadName = lead?.full_name || lead?.company_name;
+
+  const activitiesQuery = useMemo(() => {
+    if (!firestore || !leadName) return null;
+    return query(collection(firestore, 'activities'), where('lead_name', '==', leadName));
+  }, [firestore, leadName]);
+
+  const { data: leadActivities, loading: activitiesLoading } = useCollection<Activity>(activitiesQuery);
+  
+  const tasksQuery = useMemo(() => {
+    if (!firestore || !leadName) return null;
+    return query(collection(firestore, 'tasks'), where('lead_name', '==', leadName));
+  }, [firestore, leadName]);
+
+  const { data: leadTasks, loading: tasksLoading } = useCollection<Task>(tasksQuery);
+  
+  if (error) {
+    // Handle error (e.g., show a message)
+    console.error(error);
+  }
+  
+  if (!lead && !leadLoading) {
     notFound();
   }
-
-  const leadActivities = recentActivities.filter(
-    (activity) => activity.lead_name === lead.full_name || activity.lead_name === lead.company_name
-  );
   
-  const leadNotes = leadActivities.filter(a => a.event_type === 'note_added');
+  if (leadLoading || !lead) {
+      return (
+        <div className="space-y-6">
+            <Skeleton className="h-10 w-full" />
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                <div className="lg:col-span-2 space-y-6">
+                    <Skeleton className="h-40 w-full" />
+                    <Skeleton className="h-64 w-full" />
+                    <Skeleton className="h-64 w-full" />
+                </div>
+                 <div className="lg:col-span-1 space-y-6">
+                    <Skeleton className="h-96 w-full" />
+                </div>
+             </div>
+        </div>
+      )
+  }
 
-  const leadTasks = tasks.filter(
-    (task) => task.lead_name === lead.full_name || task.lead_name === lead.company_name
-  );
+  const leadNotes = leadActivities?.filter(a => a.event_type === 'note_added') || [];
 
   const scoreColor =
     lead.independent_score > 70
@@ -123,13 +168,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <TabsTrigger value="tasks"><CheckSquare className="mr-2 h-4 w-4"/>Tasks</TabsTrigger>
             </TabsList>
             <TabsContent value="notes" className="mt-6">
-              <NotesSection notes={leadNotes} leadName={lead.full_name || lead.company_name} />
+              <NotesSection notes={leadNotes} leadId={id} leadName={lead.full_name || lead.company_name} />
             </TabsContent>
             <TabsContent value="activity" className="mt-6">
-              <ActivityTimeline activities={leadActivities} />
+              <ActivityTimeline activities={leadActivities || []} />
             </TabsContent>
             <TabsContent value="tasks" className="mt-6">
-                <TasksSection tasks={leadTasks} leadName={lead.full_name || lead.company_name} />
+                <TasksSection tasks={leadTasks || []} leadId={id} leadName={lead.full_name || lead.company_name} />
             </TabsContent>
           </Tabs>
 
@@ -166,7 +211,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <DetailItem label="Email" value={<a href={`mailto:${lead.email}`} className="hover:underline">{lead.email}</a>} icon={AtSign} />
                     <DetailItem label="Lead Source" value={lead.source} icon={Database} />
                     <DetailItem label="Active Listings" value={lead.active_listings_count} icon={List} />
-                    <DetailItem label="Date Added" value={format(new Date(lead.created_at), 'MMM d, yyyy')} icon={Calendar} />
+                    <DetailItem label="Date Added" value={format(lead.created_at.toDate(), 'MMM d, yyyy')} icon={Calendar} />
                 </div>
               </div>
             </CardContent>

@@ -16,6 +16,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { useFirestore } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 const STAGES = [
     { id: 'new', label: 'New', status: 'new' as const },
@@ -43,7 +45,6 @@ const STATUS_TO_STAGE_MAP: Record<Lead['lead_status'], string> = {
   not_relevant: 'lost',
 };
 
-// A wrapper for the trigger button to avoid having a button inside a button
 const StageButton = React.forwardRef<
   HTMLButtonElement,
   React.ButtonHTMLAttributes<HTMLButtonElement>
@@ -61,20 +62,33 @@ export function LeadLifecycleTracker({ lead: initialLead }: { lead: Lead }) {
     const [lead, setLead] = useState(initialLead);
     const [pendingStatus, setPendingStatus] = useState<Lead['lead_status'] | null>(null);
     const { toast } = useToast();
+    const firestore = useFirestore();
 
     const currentStageId = STATUS_TO_STAGE_MAP[lead.lead_status];
     const currentStageIndex = STAGES.findIndex(s => s.id === currentStageId);
     
     const isLostOrNotRelevant = currentStageId === 'lost';
 
-    const handleStageChangeConfirm = () => {
-        if (pendingStatus) {
-            setLead(prevLead => ({ ...prevLead, lead_status: pendingStatus }));
-            toast({
-                title: "Status Updated",
-                description: `Lead status has been changed to "${getStageLabel(pendingStatus)}".`,
-            });
-            setPendingStatus(null);
+    const handleStageChangeConfirm = async () => {
+        if (pendingStatus && firestore) {
+            const leadRef = doc(firestore, 'leads', lead.id);
+            try {
+                await updateDoc(leadRef, { lead_status: pendingStatus });
+                setLead(prevLead => ({ ...prevLead, lead_status: pendingStatus! }));
+                toast({
+                    title: "Status Updated",
+                    description: `Lead status has been changed to "${getStageLabel(pendingStatus)}".`,
+                });
+            } catch (error) {
+                console.error("Error updating lead status:", error);
+                toast({
+                    title: "Error",
+                    description: "Failed to update lead status.",
+                    variant: "destructive"
+                });
+            } finally {
+                 setPendingStatus(null);
+            }
         }
     };
     

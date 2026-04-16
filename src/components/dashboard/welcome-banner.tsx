@@ -1,12 +1,12 @@
 'use client';
-import { users } from '@/lib/data';
+import { useUser } from '@/firebase';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '../ui/skeleton';
 
 export function WelcomeBanner() {
-  const currentUser = users[0];
+  const { user, loading } = useUser();
   const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
@@ -15,8 +15,10 @@ export function WelcomeBanner() {
       hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
     setGreeting(newGreeting);
   }, []);
+  
+  const displayName = user?.displayName?.split(' ')[0] || 'there';
 
-  if (!greeting) {
+  if (loading || !greeting) {
      return (
         <Card className="p-6 relative overflow-hidden">
             <div className="space-y-2">
@@ -34,7 +36,7 @@ export function WelcomeBanner() {
       </div>
       <div className="relative z-10">
         <CardTitle className="text-2xl font-bold font-headline text-white">
-          {greeting}, {currentUser.name.split(' ')[0]}!
+          {greeting}, {displayName}!
         </CardTitle>
         <CardDescription className="mt-2 text-white/80">
           Here's your summary for today. Let's make it a great one.

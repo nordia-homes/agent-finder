@@ -13,16 +13,18 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 import type { Activity } from "@/lib/types";
-import { users } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
+import { useFirestore, useUser } from '@/firebase';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
 
 
-export function NotesSection({ notes: initialNotes, leadName }: { notes: Activity[], leadName: string }) {
-    const [notes, setNotes] = useState<Activity[]>(initialNotes);
+export function NotesSection({ notes, leadId, leadName }: { notes: Activity[], leadId: string, leadName: string }) {
     const [newNote, setNewNote] = useState('');
     const { toast } = useToast();
+    const firestore = useFirestore();
+    const { user } = useUser();
 
-    const handleSaveNote = () => {
+    const handleSaveNote = async () => {
         if (!newNote.trim()) {
             toast({
                 title: "Note is empty",
@@ -32,22 +34,38 @@ export function NotesSection({ notes: initialNotes, leadName }: { notes: Activit
             return;
         }
 
-        const noteToAdd: Activity = {
-            id: `note-${Date.now()}`,
-            lead_name: leadName,
-            event_type: 'note_added',
-            channel: 'system',
-            description: newNote,
-            timestamp: new Date().toISOString(),
-            user: users[0], // Assume current user is the first user from data
-        };
+        if (!firestore || !user) {
+            toast({ title: "Error", description: "You must be logged in to add a note.", variant: "destructive" });
+            return;
+        }
 
-        setNotes(prevNotes => [noteToAdd, ...prevNotes]);
-        setNewNote('');
-        toast({
-            title: "Note saved",
-            description: "Your note has been successfully added.",
-        });
+        try {
+            await addDoc(collection(firestore, 'activities'), {
+                lead_id: leadId,
+                lead_name: leadName,
+                event_type: 'note_added',
+                channel: 'system',
+                description: newNote,
+                timestamp: Timestamp.now(),
+                user_id: user.uid,
+                user_name: user.displayName,
+                user_avatar: user.photoURL,
+            });
+
+            setNewNote('');
+            toast({
+                title: "Note saved",
+                description: "Your note has been successfully added.",
+            });
+
+        } catch (error) {
+            console.error("Error adding note:", error);
+            toast({
+                title: "Error saving note",
+                description: "There was a problem saving your note.",
+                variant: "destructive",
+            });
+        }
     };
 
     return (
@@ -78,12 +96,12 @@ export function NotesSection({ notes: initialNotes, leadName }: { notes: Activit
                                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
                                     <div className="flex items-center gap-3 text-left">
                                         <Avatar className="h-7 w-7">
-                                            <AvatarImage src={note.user.avatar} alt={note.user.name} />
-                                            <AvatarFallback>{note.user.name.charAt(0)}</AvatarFallback>
+                                            <AvatarImage src={note.user_avatar || ''} alt={note.user_name} />
+                                            <AvatarFallback>{note.user_name.charAt(0)}</AvatarFallback>
                                         </Avatar>
                                         <div>
-                                            <p className="text-sm font-medium">Note by {note.user.name}</p>
-                                             <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(note.timestamp), { addSuffix: true })}</p>
+                                            <p className="text-sm font-medium">Note by {note.user_name}</p>
+                                             <p className="text-xs text-muted-foreground">{formatDistanceToNow(note.timestamp.toDate(), { addSuffix: true })}</p>
                                         </div>
                                     </div>
                                 </AccordionTrigger>

@@ -1,15 +1,10 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Bar, BarChart, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
-const data = [
-  { name: 'Total Leads', value: 1254, fill: 'hsl(var(--chart-1))' },
-  { name: 'Contacted', value: 512, fill: 'hsl(var(--chart-2))' },
-  { name: 'Replied', value: 180, fill: 'hsl(var(--chart-3))' },
-  { name: 'Demo Booked', value: 42, fill: 'hsl(var(--chart-4))' },
-  { name: 'Won', value: 15, fill: 'hsl(var(--chart-5))' },
-];
+import { Skeleton } from '../ui/skeleton';
+import type { Lead } from '@/lib/types';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -26,12 +21,62 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       </div>
     );
   }
-
   return null;
 };
 
+interface SalesFunnelChartProps {
+    leads: Lead[];
+    isLoading: boolean;
+}
 
-export function SalesFunnelChart() {
+export function SalesFunnelChart({ leads, isLoading }: SalesFunnelChartProps) {
+  const data = useMemo(() => {
+    const statusCounts = {
+      total: leads.length,
+      contacted: 0,
+      replied: 0,
+      demo_booked: 0,
+      closed_won: 0,
+    };
+
+    leads.forEach(lead => {
+        if (lead.lead_status === 'contacted' || lead.lead_status === 'replied' || lead.lead_status === 'demo_booked' || lead.lead_status === 'closed_won') {
+            statusCounts.contacted++;
+        }
+        if (lead.lead_status === 'replied' || lead.lead_status === 'demo_booked' || lead.lead_status === 'closed_won') {
+            statusCounts.replied++;
+        }
+        if (lead.lead_status === 'demo_booked' || lead.lead_status === 'closed_won') {
+            statusCounts.demo_booked++;
+        }
+        if (lead.lead_status === 'closed_won') {
+            statusCounts.closed_won++;
+        }
+    });
+
+    return [
+      { name: 'Total Leads', value: statusCounts.total, fill: 'hsl(var(--chart-1))' },
+      { name: 'Contacted', value: statusCounts.contacted, fill: 'hsl(var(--chart-2))' },
+      { name: 'Replied', value: statusCounts.replied, fill: 'hsl(var(--chart-3))' },
+      { name: 'Demo Booked', value: statusCounts.demo_booked, fill: 'hsl(var(--chart-4))' },
+      { name: 'Won', value: statusCounts.closed_won, fill: 'hsl(var(--chart-5))' },
+    ];
+  }, [leads]);
+  
+  if (isLoading) {
+    return (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle className="font-headline">Sales Pipeline</CardTitle>
+          <CardDescription>From initial lead to closed deal.</CardDescription>
+        </CardHeader>
+        <CardContent className="h-[300px] pt-4">
+            <Skeleton className="w-full h-full" />
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className="h-full">
       <CardHeader>

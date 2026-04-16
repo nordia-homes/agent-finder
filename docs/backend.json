@@ -1,0 +1,123 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Represents a user's profile information.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The user's unique ID from Firebase Authentication."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address."
+        },
+        "avatar": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to the user's avatar image."
+        }
+      },
+      "required": ["uid", "name", "email"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "Represents a real estate agent lead.",
+      "type": "object",
+      "properties": {
+        "full_name": { "type": "string" },
+        "first_name": { "type": "string" },
+        "last_name": { "type": "string" },
+        "company_name": { "type": "string" },
+        "business_type": { "type": "string" },
+        "city": { "type": "string" },
+        "county": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "website": { "type": "string", "format": "uri" },
+        "source": { "type": "string" },
+        "source_url": { "type": "string", "format": "uri" },
+        "active_listings_count": { "type": "number" },
+        "independent_score": { "type": "number" },
+        "classification": { "type": "string", "enum": ["likely_independent", "possible_independent", "agency"] },
+        "lead_status": { "type": "string", "enum": ["new", "reviewed", "qualified", "contacted", "replied", "demo_booked", "closed_won", "closed_lost", "not_relevant"] },
+        "outreach_status": { "type": "string", "enum": ["not_started", "in_sequence", "paused", "completed", "replied", "bounced"] },
+        "owner_id": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "last_contact_at": { "type": ["string", "null"], "format": "date-time" },
+        "hasIndependentPhrase": { "type": "boolean" },
+        "isPersonalNameDetected": { "type": "boolean" },
+        "hasSoloBusinessIndicators": { "type": "boolean" },
+        "isSingleCityActivity": { "type": "boolean" },
+        "noLargeBrandDetected": { "type": "boolean" },
+        "hasSoloOperatorSignals": { "type": "boolean" },
+        "hasLargeAgencyBrand": { "type": "boolean" },
+        "hasMultipleOfficeLocations": { "type": "boolean" },
+        "hasTeamWording": { "type": "boolean" },
+        "hasFranchiseOrCorporateWording": { "type": "boolean" }
+      },
+      "required": ["company_name", "independent_score", "classification", "lead_status", "owner_id", "created_at"]
+    },
+    "Activity": {
+      "title": "Activity",
+      "description": "Represents an activity related to a lead.",
+      "type": "object",
+      "properties": {
+        "lead_id": { "type": "string" },
+        "lead_name": { "type": "string" },
+        "event_type": { "type": "string", "enum": ["email_sent", "note_added", "status_changed", "task_created"] },
+        "channel": { "type": "string", "enum": ["email", "system", "task"] },
+        "description": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "user_id": { "type": "string" },
+        "user_name": { "type": "string" },
+        "user_avatar": { "type": "string", "format": "uri" }
+      },
+      "required": ["lead_id", "lead_name", "event_type", "description", "timestamp", "user_id", "user_name"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Represents a task for a user related to a lead.",
+      "type": "object",
+      "properties": {
+        "lead_id": { "type": "string" },
+        "lead_name": { "type": "string" },
+        "owner_id": { "type": "string" },
+        "type": { "type": "string", "enum": ["call", "follow_up", "demo", "review", "reply_check"] },
+        "due_date": { "type": "string", "format": "date-time" },
+        "is_overdue": { "type": "boolean" },
+        "completed": { "type": "boolean" },
+        "completed_at": { "type": ["string", "null"], "format": "date-time" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["lead_id", "lead_name", "owner_id", "type", "due_date", "completed", "created_at"]
+    }
+  },
+  "auth": {
+    "providers": ["anonymous"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Stores public profiles for users."
+    },
+    "/leads/{leadId}": {
+      "schema": { "$ref": "#/entities/Lead" },
+      "description": "Stores all leads."
+    },
+    "/activities/{activityId}": {
+      "schema": { "$ref": "#/entities/Activity" },
+      "description": "Stores an audit trail of activities."
+    },
+    "/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "Stores tasks assigned to users."
+    }
+  }
+}

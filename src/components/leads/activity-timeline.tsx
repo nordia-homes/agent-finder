@@ -33,7 +33,7 @@ export function ActivityTimeline({ activities }: { activities: Activity[] }) {
                   </div>
                   <div className="pl-4">
                     <p className="text-sm">
-                      <span className="font-medium">{activity.user.name}</span>{' '}
+                      <span className="font-medium">{activity.user_name}</span>{' '}
                       {activity.event_type === 'note_added' ? 'added a note' : 
                        activity.event_type === 'status_changed' ? `changed status` : 
                        activity.event_type === 'task_created' ? 'created a task' :
@@ -42,7 +42,7 @@ export function ActivityTimeline({ activities }: { activities: Activity[] }) {
                     </p>
                     <p className="text-sm text-muted-foreground">{activity.description}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                      {formatDistanceToNow(activity.timestamp.toDate(), { addSuffix: true })}
                     </p>
                   </div>
                 </div>
@@ -50,7 +50,7 @@ export function ActivityTimeline({ activities }: { activities: Activity[] }) {
             })}
           </div>
         ) : (
-            <p className="text-muted-foreground text-sm">No activity recorded for this lead yet.</p>
+            <p className="text-muted-foreground text-sm text-center py-8">No activity recorded for this lead yet.</p>
         )}
       </CardContent>
     </Card>

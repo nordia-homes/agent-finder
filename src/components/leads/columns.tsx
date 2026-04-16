@@ -64,15 +64,15 @@ export const columns: ColumnDef<Lead>[] = [
     ),
     cell: ({ row }) => {
       const lead = row.original;
+      const name = lead.full_name || lead.company_name;
       return (
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={lead.owner.avatar} alt={lead.owner.name} />
-            <AvatarFallback>{lead.full_name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{name?.charAt(0)}</AvatarFallback>
           </Avatar>
           <div>
             <Link href={`/leads/${lead.id}`} className="font-medium hover:underline">
-              {lead.full_name || lead.company_name}
+              {name}
             </Link>
             <div className="text-xs text-muted-foreground">{lead.email}</div>
           </div>
@@ -136,7 +136,7 @@ export const columns: ColumnDef<Lead>[] = [
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-     cell: ({ row }) => format(new Date(row.original.created_at), 'MMM d, yyyy'),
+     cell: ({ row }) => format(row.original.created_at.toDate(), 'MMM d, yyyy'),
   },
   {
     id: 'actions',

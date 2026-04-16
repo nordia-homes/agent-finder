@@ -23,6 +23,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { Task } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useFirestore, useUser } from '@/firebase';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
 
 const taskTypes: Task['type'][] = ['call', 'follow_up', 'demo', 'review', 'reply_check'];
 
@@ -38,31 +40,50 @@ const taskFormSchema = z.object({
 type TaskFormValues = z.infer<typeof taskFormSchema>;
 
 interface AddTaskDialogProps {
+  leadId: string;
   leadName: string;
-  onAddTask: (task: Omit<Task, 'id' | 'is_overdue'>) => void;
   children: React.ReactNode;
 }
 
-export function AddTaskDialog({ leadName, onAddTask, children }: AddTaskDialogProps) {
+export function AddTaskDialog({ leadId, leadName, children }: AddTaskDialogProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const { user } = useUser();
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
   });
 
-  const onSubmit = (data: TaskFormValues) => {
-    onAddTask({
-      lead_name: leadName,
-      type: data.type,
-      due_date: data.due_date.toISOString(),
-    });
-    toast({
-      title: 'Task Created',
-      description: `A new task has been created for ${leadName}.`,
-    });
-    setOpen(false);
-    form.reset();
+  const onSubmit = async (data: TaskFormValues) => {
+    if (!firestore || !user) {
+        toast({ title: "Error", description: "Not authenticated.", variant: "destructive" });
+        return;
+    };
+
+    try {
+        await addDoc(collection(firestore, 'tasks'), {
+            lead_id: leadId,
+            lead_name: leadName,
+            owner_id: user.uid,
+            type: data.type,
+            due_date: Timestamp.fromDate(data.due_date),
+            is_overdue: new Date(data.due_date) < new Date(),
+            completed: false,
+            created_at: Timestamp.now(),
+        });
+
+        toast({
+          title: 'Task Created',
+          description: `A new task has been created for ${leadName}.`,
+        });
+        setOpen(false);
+        form.reset();
+
+    } catch (error) {
+        console.error("Error adding task:", error);
+        toast({ title: "Error", description: "Failed to create task.", variant: "destructive" });
+    }
   };
 
   return (
