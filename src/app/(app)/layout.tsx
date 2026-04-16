@@ -3,14 +3,18 @@ import { Sidebar, SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { SidebarNav, SidebarFooterNav } from '@/components/layout/sidebar-nav';
 import { Building, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cookies } from 'next/headers';
 
 export default function AppLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const sidebarCookie = cookies().get('sidebar_state');
+  const defaultOpen = sidebarCookie?.value !== 'false';
+
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={defaultOpen}>
       <div className="flex min-h-screen w-full">
         <Sidebar collapsible="icon" className="hidden md:flex flex-col border-r bg-card">
           <div className="flex h-16 items-center justify-between px-4 border-b">
