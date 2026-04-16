@@ -4,7 +4,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Import } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowUpDown } from 'lucide-react';
+import { ArrowUpDown, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +21,13 @@ const phoneStatusStyles: Record<NonNullable<Import['phone_status']>, string> = {
   click_failed: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   challenge_detected: 'bg-amber-100 text-amber-800 border-amber-200',
   partial_visible: 'bg-orange-100 text-orange-800 border-orange-200',
+};
+
+const reviewStatusStyles: Record<Import['review_status'], string> = {
+  pending_review: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  approved: 'bg-blue-100 text-blue-800 border-blue-200',
+  rejected: 'bg-red-100 text-red-800 border-red-200',
+  duplicate: 'bg-gray-100 text-gray-800 border-gray-200',
 };
 
 
@@ -47,33 +54,19 @@ export const columns: ColumnDef<Import>[] = [
   },
   {
     accessorKey: 'city',
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="-ml-4"
-      >
-        City
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
+    header: 'City',
     filterFn: (row, id, value) => {
       return value === row.getValue(id);
     },
   },
-  {
-    accessorKey: 'source',
-    header: 'Source',
+   {
+    accessorKey: 'phone',
+    header: 'Phone',
     cell: ({ row }) => {
-        const imp = row.original;
-        if (!imp.source) return '-';
-        const url = imp.source_url;
-        const sourceName = imp.source.replace(/_/g, ' ');
-        if (!url) return <span className="capitalize">{sourceName}</span>;
-        return <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline capitalize">{sourceName}</a>
-    },
-    filterFn: (row, id, value) => {
-        return value === row.getValue(id);
+        const { phone, phone_prefix } = row.original;
+        if (phone) return phone;
+        if (phone_prefix) return `${phone_prefix}...`;
+        return '-';
     }
   },
   {
@@ -93,14 +86,8 @@ export const columns: ColumnDef<Import>[] = [
     },
   },
   {
-    accessorKey: 'sales_count',
-    header: 'Listings (S/R)',
-    cell: ({ row }) => {
-        const { sales_count, rent_count } = row.original;
-        const s = typeof sales_count === 'number' ? sales_count : '-';
-        const r = typeof rent_count === 'number' ? rent_count : '-';
-        return <span>{s} / {r}</span>
-    }
+    accessorKey: 'active_listings_count',
+    header: 'Listings',
   },
   {
     accessorKey: 'independent_score',
@@ -128,7 +115,7 @@ export const columns: ColumnDef<Import>[] = [
       const classification = row.original.classification;
       if (!classification) return null;
       return (
-        <Badge variant="outline" className={cn(classificationStyles[classification], 'font-medium')}>
+        <Badge variant="outline" className={cn(classificationStyles[classification], 'font-medium capitalize')}>
           {classification.replace('_', ' ')}
         </Badge>
       );
@@ -136,6 +123,42 @@ export const columns: ColumnDef<Import>[] = [
     filterFn: (row, id, value) => {
       return value === row.getValue(id);
     },
+  },
+  {
+    accessorKey: 'review_status',
+    header: 'Review Status',
+    cell: ({ row }) => {
+      const status = row.original.review_status;
+      return (
+        <Badge variant="outline" className={cn(reviewStatusStyles[status], 'font-medium capitalize')}>
+          {status.replace(/_/g, ' ')}
+        </Badge>
+      );
+    },
+    filterFn: (row, id, value) => {
+      return value === row.getValue(id);
+    },
+  },
+  {
+    accessorKey: 'source',
+    header: 'Source',
+    cell: ({ row }) => {
+        const { source, source_url } = row.original;
+        if (!source) return '-';
+        const sourceName = source.replace(/_/g, ' ');
+        if (!source_url) return <span className="capitalize">{sourceName}</span>;
+        return (
+            <div className="flex items-center gap-2">
+                <span className="capitalize">{sourceName}</span>
+                <a href={source_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                    <ExternalLink className="h-3 w-3" />
+                </a>
+            </div>
+        )
+    },
+    filterFn: (row, id, value) => {
+        return value === row.getValue(id);
+    }
   },
   {
     accessorKey: 'importedAt',

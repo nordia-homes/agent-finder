@@ -108,6 +108,18 @@ export function DataTable<TData extends {id: string, independent_score?: number,
           className="max-w-xs bg-card"
         />
         <div className="flex flex-wrap items-center gap-2">
+            <Select onValueChange={(value) => table.getColumn('review_status')?.setFilterValue(value === 'all' ? undefined : value)}>
+                <SelectTrigger className="w-[180px] bg-card">
+                    <SelectValue placeholder="Review Status" />
+                </SelectTrigger>
+                <SelectContent>
+                     <SelectItem value="all">All Statuses</SelectItem>
+                     <SelectItem value="pending_review">Pending Review</SelectItem>
+                     <SelectItem value="approved">Approved</SelectItem>
+                     <SelectItem value="rejected">Rejected</SelectItem>
+                     <SelectItem value="duplicate">Duplicate</SelectItem>
+                </SelectContent>
+            </Select>
             <Select onValueChange={(value) => table.getColumn('city')?.setFilterValue(value === 'all' ? undefined : value)}>
                 <SelectTrigger className="w-[160px] bg-card">
                     <SelectValue placeholder="Filter by City" />

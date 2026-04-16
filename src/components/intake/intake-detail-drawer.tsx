@@ -125,7 +125,7 @@ export function IntakeDetailDrawer({ open, onOpenChange, selectedImport, onAppro
                 <DetailItem label="Company Name" value={company_name} icon={Briefcase} />
                 <DetailItem label="Address" value={address} icon={MapPin} />
                 <DetailItem label="Location" value={city && county ? `${city}, ${county}` : city} icon={MapPin} />
-                <DetailItem label="Phone" value={phone_prefix ? `${phone_prefix}...` : phone} icon={Phone} />
+                <DetailItem label="Phone" value={phone ? phone : (phone_prefix ? `${phone_prefix}...` : null)} icon={Phone} />
                 <DetailItem label="Phone Status" value={phone_status ? <Badge variant="outline" className={cn(phoneStatusStyles[phone_status], 'font-medium capitalize')}>{phone_status.replace(/_/g, ' ')}</Badge> : null} icon={Phone} />
                 <DetailItem label="Email" value={email ? <a href={`mailto:${email}`} className="text-primary hover:underline">{email}</a> : '-'} icon={AtSign} />
                 <DetailItem label="Website" value={website ? <a href={website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{website}</a> : '-'} icon={Globe} />
