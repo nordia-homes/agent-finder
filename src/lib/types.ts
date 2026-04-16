@@ -89,25 +89,35 @@ export type Import = {
   id: string;
   full_name?: string;
   company_name?: string;
+  address?: string;
   city?: string;
+  city_line?: string;
   county?: string;
   phone?: string;
-  phone_status?: 'found' | 'missing' | 'not_found' | 'click_failed' | 'challenge_detected';
+  phone_prefix?: string;
+  phone_status?: 'found' | 'missing' | 'not_found' | 'click_failed' | 'challenge_detected' | 'partial_visible';
   email?: string;
   website?: string;
+  image_url?: string;
   description?: string;
   source?: string;
   source_url?: string;
   active_listings_count?: number;
   sales_count?: number;
   rent_count?: number;
+  sales_price_from?: number;
+  sales_price_to?: number;
+  rent_price_from?: number;
+  rent_price_to?: number;
   independent_score?: number;
   classification?: 'likely_independent' | 'possible_independent' | 'agency';
   review_status: 'pending_review' | 'approved' | 'rejected' | 'duplicate';
   importedAt: Timestamp;
+  listed_since?: string;
   jobId?: string;
   pageNumber?: number;
   pageUrl?: string;
+  seller_id?: string;
 };
 
 export type ScrapeJob = {

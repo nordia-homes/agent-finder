@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Import } from "@/lib/types";
 import { format } from "date-fns";
-import { CheckCircle, XCircle, Copy, Briefcase, Globe, AtSign, Database, List, Calendar, Hash, Phone, MapPin, FileText, Star } from "lucide-react";
+import { CheckCircle, XCircle, Copy, Briefcase, Globe, AtSign, Database, List, Calendar, Hash, Phone, MapPin, FileText, Star, Euro, Image as ImageIcon } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 
 
@@ -29,7 +29,7 @@ interface IntakeDetailDrawerProps {
 }
 
 const DetailItem = ({ label, value, icon: Icon, isUrl = false }: { label: string; value?: React.ReactNode, icon: React.ElementType, isUrl?: boolean }) => {
-    if (!value) return null;
+    if (!value && value !== 0) return null;
     return (
         <div className="flex items-start gap-3">
             <Icon className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
@@ -60,6 +60,7 @@ const phoneStatusStyles: Record<NonNullable<Import['phone_status']>, string> = {
   not_found: 'bg-gray-100 text-gray-800 border-gray-200',
   click_failed: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   challenge_detected: 'bg-amber-100 text-amber-800 border-amber-200',
+  partial_visible: 'bg-orange-100 text-orange-800 border-orange-200',
 };
 
 
@@ -70,25 +71,34 @@ export function IntakeDetailDrawer({ open, onOpenChange, selectedImport, onAppro
       id,
       full_name,
       company_name,
+      address,
       city,
       county,
       phone,
+      phone_prefix,
       phone_status,
       email,
       website,
+      image_url,
       description,
       source,
       source_url,
       active_listings_count,
       sales_count,
       rent_count,
+      sales_price_from,
+      sales_price_to,
+      rent_price_from,
+      rent_price_to,
       independent_score,
       classification,
       review_status,
       importedAt,
+      listed_since,
       jobId,
       pageNumber,
-      pageUrl
+      pageUrl,
+      seller_id,
   } = selectedImport;
 
   const name = company_name || full_name;
@@ -113,20 +123,26 @@ export function IntakeDetailDrawer({ open, onOpenChange, selectedImport, onAppro
             <div className="grid grid-cols-1 gap-5 p-6">
                 <DetailItem label="Full Name" value={full_name} icon={Briefcase} />
                 <DetailItem label="Company Name" value={company_name} icon={Briefcase} />
+                <DetailItem label="Address" value={address} icon={MapPin} />
                 <DetailItem label="Location" value={city && county ? `${city}, ${county}` : city} icon={MapPin} />
-                <DetailItem label="Phone" value={phone} icon={Phone} />
+                <DetailItem label="Phone" value={phone_prefix ? `${phone_prefix}...` : phone} icon={Phone} />
                 <DetailItem label="Phone Status" value={phone_status ? <Badge variant="outline" className={cn(phoneStatusStyles[phone_status], 'font-medium capitalize')}>{phone_status.replace(/_/g, ' ')}</Badge> : null} icon={Phone} />
-                <DetailItem label="Email" value={<a href={`mailto:${email}`} className="text-primary hover:underline">{email}</a>} icon={AtSign} />
+                <DetailItem label="Email" value={email ? <a href={`mailto:${email}`} className="text-primary hover:underline">{email}</a> : '-'} icon={AtSign} />
                 <DetailItem label="Website" value={website ? <a href={website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{website}</a> : '-'} icon={Globe} />
+                <DetailItem label="Image URL" value={image_url ? <a href={image_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate block">{image_url}</a> : '-'} icon={ImageIcon} isUrl />
                 <DetailItem label="Description" value={description} icon={FileText} />
                 <Separator />
                  <DetailItem label="Source" value={source ? <a href={source_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline capitalize">{source.replace(/_/g, ' ')}</a> : '-'} icon={Database} />
                 <DetailItem label="Listings for Sale" value={sales_count} icon={List} />
+                <DetailItem label="Sale Price Range" value={sales_price_from && sales_price_to ? `${sales_price_from.toLocaleString()} - ${sales_price_to.toLocaleString()} €` : '-'} icon={Euro} />
                 <DetailItem label="Listings for Rent" value={rent_count} icon={List} />
+                <DetailItem label="Rent Price Range" value={rent_price_from && rent_price_to ? `${rent_price_from.toLocaleString()} - ${rent_price_to.toLocaleString()} €` : '-'} icon={Euro} />
                 <DetailItem label="Active Listings (Total)" value={active_listings_count} icon={List} />
                 <DetailItem label="Independent Score" value={independent_score} icon={Star} />
                 <Separator />
+                <DetailItem label="Listed Since" value={listed_since} icon={Calendar} />
                 <DetailItem label="Imported At" value={format(importedAt.toDate(), 'PPP p')} icon={Calendar} />
+                <DetailItem label="Seller ID" value={seller_id} icon={Hash} />
                 <DetailItem label="Job ID" value={jobId} icon={Hash} />
                 <DetailItem label="Source Page Number" value={pageNumber} icon={Hash} />
                 <DetailItem label="Source Page URL" value={pageUrl ? <a href={pageUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{pageUrl}</a> : '-'} icon={Globe} isUrl />

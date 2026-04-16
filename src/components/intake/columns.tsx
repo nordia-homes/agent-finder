@@ -20,6 +20,7 @@ const phoneStatusStyles: Record<NonNullable<Import['phone_status']>, string> = {
   not_found: 'bg-gray-100 text-gray-800 border-gray-200',
   click_failed: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   challenge_detected: 'bg-amber-100 text-amber-800 border-amber-200',
+  partial_visible: 'bg-orange-100 text-orange-800 border-orange-200',
 };
 
 

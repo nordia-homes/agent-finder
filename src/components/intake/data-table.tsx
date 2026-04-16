@@ -1,6 +1,9 @@
 'use client';
 
 import {
+![CDATA['use client';
+
+import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
@@ -151,6 +154,7 @@ export function DataTable<TData extends {id: string, independent_score?: number,
                     <SelectItem value="not_found">Not Found</SelectItem>
                     <SelectItem value="click_failed">Click Failed</SelectItem>
                     <SelectItem value="challenge_detected">Challenge Detected</SelectItem>
+                    <SelectItem value="partial_visible">Partial Visible</SelectItem>
                 </SelectContent>
             </Select>
         </div>
