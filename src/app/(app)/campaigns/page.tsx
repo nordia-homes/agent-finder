@@ -170,20 +170,20 @@ export default function CampaignsPage() {
         </Button>
       </PageHeader>
       
-      <Tabs defaultValue="email" className="w-full">
+      <Tabs defaultValue="ai_call" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="email"><Mail className="mr-2 h-4 w-4" /> Email Campaigns</TabsTrigger>
-          <TabsTrigger value="whatsapp"><MessageSquare className="mr-2 h-4 w-4" /> WhatsApp Campaigns</TabsTrigger>
           <TabsTrigger value="ai_call"><Phone className="mr-2 h-4 w-4" /> AI Call Campaigns</TabsTrigger>
+          <TabsTrigger value="whatsapp"><MessageSquare className="mr-2 h-4 w-4" /> WhatsApp Campaigns</TabsTrigger>
+          <TabsTrigger value="email"><Mail className="mr-2 h-4 w-4" /> Email Campaigns</TabsTrigger>
         </TabsList>
-        <TabsContent value="email">
-            <CampaignsGrid campaigns={campaigns} channel="email" />
+        <TabsContent value="ai_call">
+             <CampaignsGrid campaigns={campaigns} channel="ai_call" />
         </TabsContent>
         <TabsContent value="whatsapp">
             <CampaignsGrid campaigns={campaigns} channel="whatsapp" />
         </TabsContent>
-        <TabsContent value="ai_call">
-             <CampaignsGrid campaigns={campaigns} channel="ai_call" />
+        <TabsContent value="email">
+            <CampaignsGrid campaigns={campaigns} channel="email" />
         </TabsContent>
       </Tabs>
     </div>
