@@ -7,6 +7,7 @@ import {
   signInWithPopup,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
@@ -71,6 +72,10 @@ export default function LoginPage() {
         title = 'Invalid Email';
         description = 'Please enter a valid email address.';
         break;
+      case 'auth/missing-email':
+          title = 'Email Required';
+          description = 'Please enter your email address.';
+          break;
       case 'auth/popup-closed-by-user':
       case 'auth/cancelled-popup-request':
         // These are not errors, so we just return without showing a toast.
@@ -125,6 +130,33 @@ export default function LoginPage() {
     }
   };
 
+  const handlePasswordReset = async () => {
+    if (!email) {
+      toast({
+        title: 'Email required',
+        description: 'Please enter your email address to reset your password.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!auth) {
+        toast({ title: 'Authentication service is not available.', variant: 'destructive' });
+        return;
+    }
+    setLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({
+        title: 'Password Reset Email Sent',
+        description: 'Check your inbox for a link to reset your password. It might be in your spam folder.',
+      });
+    } catch (error: any) {
+      handleAuthError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (userLoading || user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -159,7 +191,19 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                {mode === 'signin' && (
+                  <button
+                    type="button"
+                    onClick={handlePasswordReset}
+                    className="text-sm font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={loading}
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
               <Input
                 id="password"
                 type="password"
