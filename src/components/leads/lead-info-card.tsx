@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Lead } from "@/lib/types";
-import { Mail, MessageSquare, Phone, MapPin } from "lucide-react";
+import { Mail, MessageSquare, Phone, MapPin, Sparkles } from "lucide-react";
+import { AIEnrichmentDialog } from "./ai-enrichment-dialog";
 
 export function LeadInfoCard({ lead }: { lead: Lead }) {
     const whatsappPhoneNumber = lead.phone.replace(/[^0-9]/g, '');
@@ -43,6 +44,12 @@ export function LeadInfoCard({ lead }: { lead: Lead }) {
                                 Email
                             </a>
                         </Button>
+                        <AIEnrichmentDialog lead={lead}>
+                            <Button variant="outline" className="bg-accent/20 border-accent/30 text-accent-foreground hover:bg-accent/40">
+                                <Sparkles className="mr-2 h-4 w-4" />
+                                Îmbogățește
+                            </Button>
+                        </AIEnrichmentDialog>
                     </div>
                 </div>
             </CardContent>
