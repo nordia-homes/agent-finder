@@ -36,7 +36,7 @@ export function SidebarNav() {
                 className={cn(
                   'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                   isActive
-                    ? 'bg-primary/10 text-primary'
+                    ? 'bg-primary text-primary-foreground shadow hover:bg-primary/90'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                    isCollapsed && "justify-center"
                 )}
@@ -58,8 +58,11 @@ export function SidebarNav() {
 }
 
 export function SidebarFooterNav() {
+  const pathname = usePathname();
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
+  const isActive = pathname.startsWith('/settings');
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -67,7 +70,9 @@ export function SidebarFooterNav() {
           href="/settings"
           className={cn(
             'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-            'text-muted-foreground hover:bg-muted hover:text-foreground',
+            isActive
+              ? 'bg-primary text-primary-foreground shadow hover:bg-primary/90'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             isCollapsed && "justify-center"
           )}
         >
