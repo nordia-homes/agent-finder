@@ -71,6 +71,7 @@ export type Campaign = {
   id: string;
   name: string;
   description: string;
+  channel: 'email' | 'whatsapp' | 'ai_call';
   status: 'draft' | 'active' | 'paused' | 'completed';
   owner_id: string;
   created_at: Timestamp;

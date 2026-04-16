@@ -3,7 +3,7 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Play, Pause, FolderArchive } from "lucide-react";
+import { PlusCircle, Play, Pause, FolderArchive, Mail, MessageSquare, Phone, MoreVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
@@ -12,62 +12,80 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { MoreVertical } from "lucide-react"
+} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Campaign as CampaignType } from "@/lib/types";
 
 // Mock data, this will come from firebase
 const campaigns = [
     {
         id: '1',
         name: 'Q4 Independent Agent Push',
-        description: 'Multi-step email and WhatsApp sequence for high-scoring independent agents.',
+        description: 'Multi-step email sequence for high-scoring independent agents.',
         status: 'active' as const,
         leadsCount: 250,
         progress: 60,
         replyRate: 12,
+        channel: 'email' as const,
     },
     {
         id: '2',
-        name: 'New Listings Follow-up',
-        description: 'Automated follow-up for agents with new listings in target areas.',
+        name: 'New Listings Follow-up (WhatsApp)',
+        description: 'Automated WhatsApp follow-up for agents with new listings.',
         status: 'paused' as const,
         leadsCount: 75,
         progress: 25,
         replyRate: 8,
+        channel: 'whatsapp' as const,
     },
     {
         id: '3',
-        name: 'Agency Reactivation',
-        description: 'A campaign to re-engage with previously contacted agency leads.',
+        name: 'AI Cold Call - Q1 Leads',
+        description: 'Initial AI-powered cold call campaign for new year leads.',
         status: 'draft' as const,
         leadsCount: 0,
         progress: 0,
         replyRate: 0,
+        channel: 'ai_call' as const,
     },
     {
         id: '4',
-        name: 'Q3 Outreach',
-        description: 'Completed campaign from the previous quarter.',
+        name: 'Q3 Email Outreach',
+        description: 'Completed email campaign from the previous quarter.',
         status: 'completed' as const,
         leadsCount: 180,
         progress: 100,
         replyRate: 15,
+        channel: 'email' as const,
     }
-]
+];
 
-const statusStyles: Record<(typeof campaigns)[0]['status'], string> = {
+type Campaign = (typeof campaigns)[0];
+
+const statusStyles: Record<Campaign['status'], string> = {
     active: 'bg-green-100 text-green-800 border-green-200',
     paused: 'bg-amber-100 text-amber-800 border-amber-200',
     draft: 'bg-gray-100 text-gray-800 border-gray-200',
     completed: 'bg-blue-100 text-blue-800 border-blue-200'
-}
+};
 
-const CampaignCard = ({ campaign }: { campaign: (typeof campaigns)[0] }) => {
+const channelIcons: Record<Campaign['channel'], React.ElementType> = {
+    email: Mail,
+    whatsapp: MessageSquare,
+    ai_call: Phone,
+};
+
+
+const CampaignCard = ({ campaign }: { campaign: Campaign }) => {
+    const Icon = channelIcons[campaign.channel];
     return (
         <Card className="flex flex-col">
             <CardHeader>
                 <div className="flex justify-between items-start">
-                    <CardTitle className="font-headline text-lg">{campaign.name}</CardTitle>
+                    <CardTitle className="font-headline text-lg flex items-center gap-2">
+                        <Icon className="h-5 w-5 text-muted-foreground" />
+                        {campaign.name}
+                    </CardTitle>
                      <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8 -mt-2 -mr-2">
@@ -119,6 +137,28 @@ const CampaignCard = ({ campaign }: { campaign: (typeof campaigns)[0] }) => {
     )
 }
 
+const CampaignsGrid = ({ campaigns, channel }: { campaigns: Campaign[], channel: CampaignType['channel'] }) => {
+    const filteredCampaigns = campaigns.filter(c => c.channel === channel);
+    
+    return (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-6">
+            {filteredCampaigns.map(campaign => (
+                <CampaignCard key={campaign.id} campaign={campaign} />
+            ))}
+            <Card className="border-dashed flex items-center justify-center min-h-[350px]">
+                <div className="text-center">
+                    <h3 className="text-xl font-medium font-headline capitalize">New {channel.replace('_', ' ')} Campaign</h3>
+                    <p className="text-sm text-muted-foreground mt-1">Start engaging with your leads.</p>
+                    <Button variant="default" className="mt-4">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Create
+                    </Button>
+                </div>
+            </Card>
+        </div>
+    );
+};
+
 
 export default function CampaignsPage() {
   return (
@@ -129,21 +169,23 @@ export default function CampaignsPage() {
           Create Campaign
         </Button>
       </PageHeader>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {campaigns.map(campaign => (
-            <CampaignCard key={campaign.id} campaign={campaign} />
-        ))}
-         <Card className="border-dashed flex items-center justify-center min-h-[350px]">
-            <div className="text-center">
-                <h3 className="text-xl font-medium font-headline">New Campaign</h3>
-                <p className="text-sm text-muted-foreground mt-1">Start engaging with your leads.</p>
-                 <Button variant="default" className="mt-4">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Create
-                </Button>
-            </div>
-        </Card>
-      </div>
+      
+      <Tabs defaultValue="email" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="email"><Mail className="mr-2 h-4 w-4" /> Email Campaigns</TabsTrigger>
+          <TabsTrigger value="whatsapp"><MessageSquare className="mr-2 h-4 w-4" /> WhatsApp Campaigns</TabsTrigger>
+          <TabsTrigger value="ai_call"><Phone className="mr-2 h-4 w-4" /> AI Call Campaigns</TabsTrigger>
+        </TabsList>
+        <TabsContent value="email">
+            <CampaignsGrid campaigns={campaigns} channel="email" />
+        </TabsContent>
+        <TabsContent value="whatsapp">
+            <CampaignsGrid campaigns={campaigns} channel="whatsapp" />
+        </TabsContent>
+        <TabsContent value="ai_call">
+             <CampaignsGrid campaigns={campaigns} channel="ai_call" />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

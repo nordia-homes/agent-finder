@@ -105,12 +105,13 @@
       "properties": {
         "name": { "type": "string" },
         "description": { "type": "string" },
+        "channel": { "type": "string", "enum": ["email", "whatsapp", "ai_call"] },
         "status": { "type": "string", "enum": ["draft", "active", "paused", "completed"] },
         "owner_id": { "type": "string" },
         "created_at": { "type": "string", "format": "date-time" },
         "lead_ids": { "type": "array", "items": { "type": "string" } }
       },
-      "required": ["name", "status", "owner_id", "created_at"]
+      "required": ["name", "status", "owner_id", "created_at", "channel"]
     }
   },
   "auth": {
