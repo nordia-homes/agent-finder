@@ -83,3 +83,22 @@ export type NavItem = {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
 };
+
+export type Import = {
+  id: string;
+  full_name?: string;
+  company_name?: string;
+  city?: string;
+  county?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  source?: string;
+  source_url?: string;
+  active_listings_count?: number;
+  independent_score?: number;
+  classification?: 'likely_independent' | 'possible_independent' | 'agency';
+  review_status: 'pending_review' | 'approved' | 'rejected' | 'duplicate';
+  importedAt: Timestamp;
+  jobId?: string;
+};
