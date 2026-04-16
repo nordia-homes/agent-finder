@@ -25,7 +25,7 @@ export function LeadInfoCard({ lead }: { lead: Lead }) {
                             </div>
                         </div>
                     </div>
-                    <div className="flex flex-nowrap items-center justify-end gap-3">
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
                          <Button asChild variant="secondary" className="bg-white/90 text-primary hover:bg-white">
                             <a href={`https://wa.me/${whatsappPhoneNumber}`} target="_blank" rel="noopener noreferrer">
                                 <MessageSquare className="mr-2 h-4 w-4" />
@@ -45,7 +45,7 @@ export function LeadInfoCard({ lead }: { lead: Lead }) {
                             </a>
                         </Button>
                         <AIEnrichmentDialog lead={lead}>
-                            <Button variant="secondary" className="bg-white/90 text-primary hover:bg-white">
+                            <Button variant="secondary" className="bg-accent text-accent-foreground hover:bg-accent/90">
                                 <Sparkles className="mr-2 h-4 w-4" />
                                 Îmbogățește
                             </Button>
