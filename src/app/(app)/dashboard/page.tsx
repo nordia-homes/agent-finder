@@ -51,16 +51,18 @@ export default function DashboardPage() {
           <SalesFunnelChart />
         </div>
         <div className="lg:col-span-2 space-y-8">
-           <div className="space-y-4">
+           <div className="grid grid-cols-2 gap-4">
             <KpiCard
               title="AI Calls Today"
               value="7"
               icon={<Phone className="h-5 w-5" />}
+              className="bg-gradient-to-r from-primary to-primary/70 text-primary-foreground border-0 [&_.text-muted-foreground]:text-primary-foreground/80 shadow-lg"
             />
             <KpiCard
               title="WhatsApp Today"
               value="23"
               icon={<MessageSquare className="h-5 w-5" />}
+              className="bg-gradient-to-r from-primary to-primary/70 text-primary-foreground border-0 [&_.text-muted-foreground]:text-primary-foreground/80 shadow-lg"
             />
           </div>
           <TasksOverview />
