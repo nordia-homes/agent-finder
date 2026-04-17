@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import type { Lead } from "@/lib/types";
 import Link from "next/link";
 import { ArrowRight, GitMerge } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface AssociatedLeadsDialogProps {
   open: boolean;
