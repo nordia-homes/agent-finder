@@ -2,6 +2,7 @@ import 'server-only';
 
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import type { ServiceAccount } from 'firebase-admin';
 
 import { serverEnv } from '@/lib/env.server';
@@ -38,10 +39,13 @@ const adminApp =
           credential: cert(getServiceAccount()!),
           projectId:
             getServiceAccount()!.projectId ?? serverEnv.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+          storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
         }
       : {
           projectId: serverEnv.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+          storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
         }
   );
 
 export const adminDb = getFirestore(adminApp);
+export const adminStorage = getStorage(adminApp);

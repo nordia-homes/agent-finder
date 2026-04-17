@@ -4,7 +4,7 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 
 import { adminDb } from '@/lib/firebase-admin';
-import { getRequiredInfobipConfig } from '@/lib/env.server';
+import { getRequiredInfobipConfig, hasInfobipConfig } from '@/lib/env.server';
 import { sendInfobipTemplate, sendInfobipTextMessage } from '@/lib/infobip';
 import { extractTemplateVariables, normalizePhone, sessionWindowCloseDate } from '@/lib/whatsapp';
 
@@ -15,11 +15,19 @@ export const createTemplateSchema = z.object({
     .transform((value) => value.toLowerCase().replace(/[^a-z0-9_]+/g, '_')),
   language: z.string().min(2).default('en'),
   category: z.enum(['MARKETING', 'UTILITY', 'AUTHENTICATION']),
-  headerType: z.enum(['TEXT', 'NONE']).default('NONE'),
+  headerType: z.enum(['TEXT', 'IMAGE', 'DOCUMENT', 'VIDEO', 'NONE']).default('NONE'),
   headerText: z.string().optional().default(''),
+  headerMediaUrl: z.string().optional().default(''),
   bodyText: z.string().min(1),
   footerText: z.string().optional().default(''),
   sampleValues: z.array(z.string()).optional().default([]),
+  variables: z.array(z.object({
+    key: z.string().min(1),
+    index: z.number().int().min(1),
+    label: z.string().min(1),
+    sample: z.string().min(1),
+    sourceField: z.string().optional(),
+  })).optional().default([]),
   buttons: z
     .array(
       z.object({
@@ -32,6 +40,37 @@ export const createTemplateSchema = z.object({
     .optional()
     .default([]),
   createdBy: z.string().min(1).default('system'),
+}).superRefine((value, ctx) => {
+  if (value.headerType === 'TEXT' && value.headerText.trim().length > 60) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Header text must stay within 60 characters.', path: ['headerText'] });
+  }
+
+  if (['IMAGE', 'DOCUMENT', 'VIDEO'].includes(value.headerType) && !value.headerMediaUrl.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Media headers require a media URL.', path: ['headerMediaUrl'] });
+  }
+
+  if (value.footerText.trim().length > 60) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Footer text must stay within 60 characters.', path: ['footerText'] });
+  }
+
+  if (value.buttons.length > 3) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'WhatsApp templates support up to 3 buttons.', path: ['buttons'] });
+  }
+
+  value.buttons.forEach((button, index) => {
+    if (button.text.trim().length > 25) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Button text must stay within 25 characters.', path: ['buttons', index, 'text'] });
+    }
+    if (button.type === 'URL' && !button.url?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Website buttons require a URL.', path: ['buttons', index, 'url'] });
+    }
+    if (button.type === 'URL' && button.url?.trim() && !/^https?:\/\//i.test(button.url.trim())) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Website button URLs must start with http:// or https://.', path: ['buttons', index, 'url'] });
+    }
+    if (button.type !== 'URL' && !button.payload?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Quick reply and phone buttons require a payload value.', path: ['buttons', index, 'payload'] });
+    }
+  });
 });
 
 export const createCampaignSchema = z.object({
@@ -82,32 +121,59 @@ function collectionRef(name: string) {
 }
 
 export async function listWhatsAppDashboardData() {
-  const [templates, campaigns, automations, conversations, leads] = await Promise.all([
+  const [templates, campaigns, automations, conversations, leads, events, jobs] = await Promise.all([
     collectionRef('whatsapp_templates').orderBy('updatedAt', 'desc').limit(24).get(),
     collectionRef('whatsapp_campaigns').orderBy('updatedAt', 'desc').limit(24).get(),
     collectionRef('whatsapp_automations').orderBy('updatedAt', 'desc').limit(24).get(),
     collectionRef('whatsapp_conversations').orderBy('lastOutboundAt', 'desc').limit(12).get(),
     collectionRef('leads').limit(250).get(),
+    collectionRef('whatsapp_events').orderBy('eventAt', 'desc').limit(20).get(),
+    collectionRef('whatsapp_scheduled_jobs').orderBy('runAt', 'asc').limit(20).get(),
   ]);
 
+  const templateData = templates.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Record<string, unknown>));
+  const campaignData = campaigns.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Record<string, unknown>));
+  const automationData = automations.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Record<string, unknown>));
+  const conversationData = conversations.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Record<string, unknown>));
+  const leadData = leads.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Record<string, unknown>));
+  const eventData = events.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Record<string, unknown>));
+  const jobData = jobs.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Record<string, unknown>));
+
+  const recentWebhookEvent = eventData.find((event) => event.source === 'infobip_webhook');
+  const approvedTemplates = templateData.filter((template) => template.status === 'approved');
+  const pendingJobs = jobData.filter((job) => job.status === 'pending' || job.status === 'processing');
+  const campaignsWithFailures = campaignData.filter((campaign) => Number(campaign.failedCount ?? 0) > 0);
+
   return {
-    templates: templates.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
-    campaigns: campaigns.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
-    automations: automations.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
-    conversations: conversations.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
-    leads: leads.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+    health: {
+      infobipConfigured: hasInfobipConfig(),
+      senderConfigured: hasInfobipConfig(),
+      webhookActive: Boolean(recentWebhookEvent),
+      approvedTemplatesAvailable: approvedTemplates.length > 0,
+      schedulerActive: pendingJobs.length > 0,
+      campaignsNeedAttention: campaignsWithFailures.length > 0,
+    },
+    templates: templateData,
+    campaigns: campaignData,
+    automations: automationData,
+    conversations: conversationData,
+    leads: leadData,
+    events: eventData,
+    scheduledJobs: jobData,
   };
 }
 
 export async function createTemplate(payload: unknown) {
   const data = createTemplateSchema.parse(payload);
   const { sender } = getRequiredInfobipConfig();
-  const variables = extractTemplateVariables(data.bodyText).map((item, index) => ({
-    key: item.key,
-    index: item.index,
-    label: `Variable ${index + 1}`,
-    sample: data.sampleValues[index] ?? `Example ${index + 1}`,
-  }));
+  const variables = data.variables.length > 0
+    ? data.variables
+    : extractTemplateVariables(data.bodyText).map((item, index) => ({
+        key: item.key,
+        index: item.index,
+        label: `Variable ${index + 1}`,
+        sample: data.sampleValues[index] ?? `Example ${index + 1}`,
+      }));
 
   const now = FieldValue.serverTimestamp();
   const docRef = await collectionRef('whatsapp_templates').add({
@@ -115,6 +181,7 @@ export async function createTemplate(payload: unknown) {
     sender,
     status: 'draft',
     variables,
+    headerMediaUrl: data.headerMediaUrl || '',
     structure: null,
     infobipTemplateId: null,
     rejectionReason: null,
@@ -124,6 +191,39 @@ export async function createTemplate(payload: unknown) {
   });
 
   return { id: docRef.id };
+}
+
+export async function updateTemplate(templateId: string, payload: unknown) {
+  const data = createTemplateSchema.parse(payload);
+  const templateRef = collectionRef('whatsapp_templates').doc(templateId);
+  const snapshot = await templateRef.get();
+
+  if (!snapshot.exists) {
+    throw new Error('Template not found.');
+  }
+
+  const currentTemplate = snapshot.data()!;
+  if (currentTemplate.status && currentTemplate.status !== 'draft') {
+    throw new Error('Only draft templates can be edited.');
+  }
+
+  const variables = data.variables.length > 0
+    ? data.variables
+    : extractTemplateVariables(data.bodyText).map((item, index) => ({
+        key: item.key,
+        index: item.index,
+        label: `Variable ${index + 1}`,
+        sample: data.sampleValues[index] ?? `Example ${index + 1}`,
+      }));
+
+  await templateRef.update({
+    ...data,
+    variables,
+    headerMediaUrl: data.headerMediaUrl || '',
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
+  return { id: templateId };
 }
 
 export async function submitTemplate(templateId: string) {
@@ -145,6 +245,7 @@ export async function submitTemplate(templateId: string) {
       footerText: template.footerText,
       headerText: template.headerText,
       headerType: template.headerType,
+      headerMediaUrl: template.headerMediaUrl,
       examples: (template.variables ?? []).map((variable: { sample: string }) => variable.sample),
       buttons: template.buttons,
     })
@@ -310,10 +411,17 @@ export async function createAutomation(payload: unknown) {
 }
 
 function resolveTemplateParameters(
-  variables: Array<{ key: string; sample: string }>,
+  variables: Array<{ key: string; sample: string; sourceField?: string }>,
   lead: LeadRecord
 ) {
   return variables.map((variable) => {
+    if (variable.sourceField) {
+      const mappedValue = lead[variable.sourceField as keyof LeadRecord];
+      if (mappedValue != null && String(mappedValue).trim()) {
+        return String(mappedValue);
+      }
+    }
+
     switch (variable.key) {
       case '{{1}}':
         return lead.first_name || lead.full_name || variable.sample;

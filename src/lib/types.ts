@@ -130,6 +130,7 @@ export type WhatsAppTemplateVariable = {
   index: number;
   label: string;
   sample: string;
+  sourceField?: string;
 };
 
 export type WhatsAppTemplate = {
@@ -139,8 +140,9 @@ export type WhatsAppTemplate = {
   category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
   status: WhatsAppTemplateStatus;
   sender: string;
-  headerType: 'TEXT' | 'NONE';
+  headerType: 'TEXT' | 'IMAGE' | 'DOCUMENT' | 'VIDEO' | 'NONE';
   headerText?: string;
+  headerMediaUrl?: string;
   bodyText: string;
   footerText?: string;
   variables: WhatsAppTemplateVariable[];

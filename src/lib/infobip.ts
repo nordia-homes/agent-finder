@@ -41,18 +41,24 @@ export type CreateInfobipTemplateInput = {
   bodyText: string;
   footerText?: string;
   headerText?: string;
-  headerType?: 'TEXT' | 'NONE';
+  headerType?: 'TEXT' | 'IMAGE' | 'DOCUMENT' | 'VIDEO' | 'NONE';
+  headerMediaUrl?: string;
   examples?: string[];
   buttons?: Array<{ type: string; text: string; url?: string; payload?: string }>;
 };
 
 export async function createInfobipTemplate(input: CreateInfobipTemplateInput) {
+  const placeholderMatches = input.bodyText.match(/{{\d+}}/g) ?? [];
+  const body: Record<string, unknown> = {
+    text: input.bodyText,
+  };
+
+  if (placeholderMatches.length > 0 && input.examples && input.examples.length > 0) {
+    body.examples = input.examples.slice(0, placeholderMatches.length);
+  }
+
   const structure: Record<string, unknown> = {
-    type: 'TEXT',
-    body: {
-      text: input.bodyText,
-      examples: input.examples && input.examples.length > 0 ? input.examples : ['Example value'],
-    },
+    body,
   };
 
   if (input.footerText) {
@@ -60,11 +66,51 @@ export async function createInfobipTemplate(input: CreateInfobipTemplateInput) {
   }
 
   if (input.headerText && input.headerType === 'TEXT') {
-    structure.header = { type: 'TEXT', text: input.headerText };
+    structure.header = { format: 'TEXT', text: input.headerText };
+  }
+
+  if (input.headerType && ['IMAGE', 'DOCUMENT', 'VIDEO'].includes(input.headerType) && input.headerMediaUrl) {
+    structure.header = {
+      format: input.headerType,
+      example: input.headerMediaUrl,
+    };
   }
 
   if (input.buttons?.length) {
-    structure.buttons = input.buttons;
+    const normalizedButtons = input.buttons
+      .map((button) => {
+        if (!button.text?.trim()) return null;
+
+        if (button.type === 'QUICK_REPLY') {
+          return {
+            type: 'QUICK_REPLY',
+            text: button.text.trim(),
+          };
+        }
+
+        if (button.type === 'URL' && button.url?.trim()) {
+          return {
+            type: 'URL',
+            text: button.text.trim(),
+            url: button.url.trim(),
+          };
+        }
+
+        if (button.type === 'PHONE_NUMBER' && button.payload?.trim()) {
+          return {
+            type: 'PHONE_NUMBER',
+            text: button.text.trim(),
+            phoneNumber: button.payload.trim(),
+          };
+        }
+
+        return null;
+      })
+      .filter(Boolean);
+
+    if (normalizedButtons.length > 0) {
+      structure.buttons = normalizedButtons;
+    }
   }
 
   const response = await infobipRequest<any>(`/whatsapp/2/senders/${encodeURIComponent(input.sender)}/templates`, {
