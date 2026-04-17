@@ -1,11 +1,11 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { notFound, useParams } from 'next/navigation';
 import { useDoc, useCollection, useFirestore, useUser } from '@/firebase';
-import { doc, collection, query, where } from 'firebase/firestore';
+import { doc, collection, query, where, getDocs } from 'firebase/firestore';
 
-import { CheckSquare, FileText, History, Mail, MessageSquare, Briefcase, Globe, AtSign, Database, List, Calendar, Phone } from 'lucide-react';
+import { CheckSquare, FileText, History, Mail, MessageSquare, Briefcase, Globe, AtSign, Database, List, Calendar, Phone, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,8 @@ import { TasksSection } from '@/components/leads/tasks-section';
 import { AIExplanationDialog } from '@/components/leads/ai-explanation-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EditableLeadDetail } from '@/components/leads/editable-lead-detail';
+import { DuplicateLeadsDialog } from '@/components/leads/duplicate-leads-dialog';
+import { Button } from '@/components/ui/button';
 
 
 const classificationStyles: Record<Lead['classification'], string> = {
@@ -48,6 +50,9 @@ export default function LeadDetailPage() {
   const id = params.id as string;
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
+  
+  const [duplicates, setDuplicates] = useState<Lead[]>([]);
+  const [showDuplicatesDialog, setShowDuplicatesDialog] = useState(false);
 
   const leadRef = useMemo(() => {
     if (!firestore || !id || !user) return null;
@@ -55,6 +60,33 @@ export default function LeadDetailPage() {
   }, [firestore, id, user]);
 
   const { data: lead, loading: leadLoading, error } = useDoc<Lead>(leadRef);
+  
+  useEffect(() => {
+    if (!firestore || !lead || !lead.phone) {
+      setDuplicates([]);
+      return;
+    }
+
+    const findDuplicates = async () => {
+      const leadsRef = collection(firestore, 'leads');
+      const q = query(leadsRef, where('phone', '==', lead.phone));
+      try {
+        const querySnapshot = await getDocs(q);
+        const foundDuplicates = querySnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as Lead))
+            .filter(l => l.id !== lead.id);
+        
+        setDuplicates(foundDuplicates);
+      } catch (e) {
+        console.error("Error finding duplicate leads:", e);
+        setDuplicates([]);
+      }
+    };
+
+    findDuplicates();
+
+  }, [firestore, lead]);
+
 
   const leadName = lead?.full_name || lead?.company_name;
 
@@ -205,6 +237,13 @@ export default function LeadDetailPage() {
                     </Badge>
                 </div>
 
+                {duplicates.length > 0 && (
+                    <Button variant="secondary" className="w-full bg-amber-500 hover:bg-amber-600 text-black" onClick={() => setShowDuplicatesDialog(true)}>
+                        <Users className="mr-2 h-4 w-4" />
+                        Vezi duplicate ({duplicates.length})
+                    </Button>
+                )}
+
                 <Separator className="bg-white/20" />
 
                 <div className="grid grid-cols-1 gap-3">
@@ -221,6 +260,12 @@ export default function LeadDetailPage() {
           </Card>
         </div>
       </div>
+       <DuplicateLeadsDialog 
+        open={showDuplicatesDialog} 
+        onOpenChange={setShowDuplicatesDialog} 
+        duplicates={duplicates}
+        originalLeadPhone={lead.phone || ''}
+      />
     </div>
   );
 }

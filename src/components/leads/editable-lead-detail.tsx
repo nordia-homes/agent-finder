@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Edit, Save, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 interface EditableLeadDetailProps {
   leadId: string;
@@ -35,6 +35,25 @@ export function EditableLeadDetail({ leadId, fieldKey, label, value, icon: Icon 
     }
 
     setIsLoading(true);
+    
+    if (fieldKey === 'phone' && currentValue) {
+        const leadsRef = collection(firestore, 'leads');
+        const q = query(leadsRef, where('phone', '==', currentValue));
+        const querySnapshot = await getDocs(q);
+        const foundDuplicates = querySnapshot.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(l => l.id !== leadId);
+
+        if (foundDuplicates.length > 0) {
+            toast({
+                variant: "destructive",
+                title: "Duplicate Phone Number",
+                description: `This phone number is already used by ${foundDuplicates.length} other lead(s). Please check for duplicates.`,
+                duration: 8000,
+            });
+        }
+    }
+    
     const leadRef = doc(firestore, 'leads', leadId);
     try {
       await updateDoc(leadRef, {
