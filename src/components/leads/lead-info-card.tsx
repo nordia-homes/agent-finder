@@ -7,7 +7,7 @@ import { AIEnrichmentDialog } from "./ai-enrichment-dialog";
 export function LeadInfoCard({ lead }: { lead: Lead }) {
     const hasPhone = !!lead.phone;
     const hasEmail = !!lead.email;
-    const whatsappPhoneNumber = (lead.phone || '').replace(/[^0-9]/g, '');
+    const whatsappPhoneNumber = hasPhone ? (lead.phone || '').replace(/[^0-9]/g, '') : '';
 
     return (
         <Card className="bg-gradient-to-br from-primary/90 to-primary text-primary-foreground overflow-hidden">
@@ -45,7 +45,7 @@ export function LeadInfoCard({ lead }: { lead: Lead }) {
                         <AIEnrichmentDialog lead={lead}>
                             <Button variant="secondary" className="bg-accent text-accent-foreground hover:bg-accent/90">
                                 <Sparkles />
-                                Îmbogățește
+                                Enrich
                             </Button>
                         </AIEnrichmentDialog>
                     </div>

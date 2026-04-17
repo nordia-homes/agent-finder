@@ -47,7 +47,7 @@
         "independent_score": { "type": "number" },
         "description": { "type": "string" },
         "classification": { "type": "string", "enum": ["likely_independent", "possible_independent", "agency"] },
-        "lead_status": { "type": "string", "enum": ["new", "reviewed", "qualified", "contacted", "replied", "demo_booked", "closed_won", "closed_lost", "not_relevant"] },
+        "lead_status": { "type": "string", "enum": ["new", "reviewed", "qualified", "contacted", "replied", "demo_booked", "closed_won", "closed_lost", "not_relevant", "merged"] },
         "outreach_status": { "type": "string", "enum": ["not_started", "in_sequence", "paused", "completed", "replied", "bounced"] },
         "owner_id": { "type": "string" },
         "created_at": { "type": "string", "format": "date-time" },
@@ -61,7 +61,8 @@
         "hasLargeAgencyBrand": { "type": "boolean" },
         "hasMultipleOfficeLocations": { "type": "boolean" },
         "hasTeamWording": { "type": "boolean" },
-        "hasFranchiseOrCorporateWording": { "type": "boolean" }
+        "hasFranchiseOrCorporateWording": { "type": "boolean" },
+        "merged_into": { "type": "string" }
       },
       "required": ["company_name", "independent_score", "classification", "lead_status", "owner_id", "created_at"]
     },

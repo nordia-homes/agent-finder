@@ -18,7 +18,7 @@ export type Lead = {
   independent_score: number;
   description?: string;
   classification: 'likely_independent' | 'possible_independent' | 'agency';
-  lead_status: 'new' | 'reviewed' | 'qualified' | 'contacted' | 'replied' | 'demo_booked' | 'closed_won' | 'closed_lost' | 'not_relevant';
+  lead_status: 'new' | 'reviewed' | 'qualified' | 'contacted' | 'replied' | 'demo_booked' | 'closed_won' | 'closed_lost' | 'not_relevant' | 'merged';
   outreach_status: 'not_started' | 'in_sequence' | 'paused' | 'completed' | 'replied' | 'bounced';
   owner_id: string;
   created_at: Timestamp;
@@ -33,6 +33,7 @@ export type Lead = {
   hasMultipleOfficeLocations: boolean;
   hasTeamWording: boolean;
   hasFranchiseOrCorporateWording: boolean;
+  merged_into?: string | null;
 };
 
 export type UserProfile = {

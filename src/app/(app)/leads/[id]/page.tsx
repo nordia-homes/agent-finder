@@ -1,11 +1,11 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useParams, useRouter } from 'next/navigation';
 import { useDoc, useCollection, useFirestore, useUser } from '@/firebase';
-import { doc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 
-import { CheckSquare, FileText, History, Mail, MessageSquare, Briefcase, Globe, AtSign, Database, List, Calendar, Phone, Users } from 'lucide-react';
+import { CheckSquare, FileText, History, Mail, MessageSquare, Briefcase, Globe, AtSign, Database, List, Calendar, Phone, Users, Link as LinkIcon, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -22,8 +22,10 @@ import { TasksSection } from '@/components/leads/tasks-section';
 import { AIExplanationDialog } from '@/components/leads/ai-explanation-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EditableLeadDetail } from '@/components/leads/editable-lead-detail';
-import { DuplicateLeadsDialog } from '@/components/leads/duplicate-leads-dialog';
+import { AssociatedLeadsDialog } from '@/components/leads/associated-leads-dialog';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 
 const classificationStyles: Record<Lead['classification'], string> = {
@@ -50,9 +52,12 @@ export default function LeadDetailPage() {
   const id = params.id as string;
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
+  const router = useRouter();
+  const { toast } = useToast();
   
-  const [duplicates, setDuplicates] = useState<Lead[]>([]);
-  const [showDuplicatesDialog, setShowDuplicatesDialog] = useState(false);
+  const [potentialDuplicates, setPotentialDuplicates] = useState<Lead[]>([]);
+  const [mergedLeads, setMergedLeads] = useState<Lead[]>([]);
+  const [showAssociatedLeadsDialog, setShowAssociatedLeadsDialog] = useState(false);
 
   const leadRef = useMemo(() => {
     if (!firestore || !id || !user) return null;
@@ -61,31 +66,81 @@ export default function LeadDetailPage() {
 
   const { data: lead, loading: leadLoading, error } = useDoc<Lead>(leadRef);
   
+  // Find potential duplicates (active leads with the same phone number)
   useEffect(() => {
     if (!firestore || !lead || !lead.phone) {
-      setDuplicates([]);
+      setPotentialDuplicates([]);
       return;
     }
 
     const findDuplicates = async () => {
       const leadsRef = collection(firestore, 'leads');
-      const q = query(leadsRef, where('phone', '==', lead.phone));
+      // Look for other active leads with the same phone number
+      const q = query(leadsRef, where('phone', '==', lead.phone), where('lead_status', '!=', 'merged'));
       try {
         const querySnapshot = await getDocs(q);
         const foundDuplicates = querySnapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() } as Lead))
             .filter(l => l.id !== lead.id);
         
-        setDuplicates(foundDuplicates);
+        setPotentialDuplicates(foundDuplicates);
       } catch (e) {
-        console.error("Error finding duplicate leads:", e);
-        setDuplicates([]);
+        console.error("Error finding potential duplicate leads:", e);
+        setPotentialDuplicates([]);
       }
     };
 
     findDuplicates();
 
   }, [firestore, lead]);
+
+  // Find leads that have been merged INTO this lead
+  useEffect(() => {
+    if (!firestore || !lead) {
+      setMergedLeads([]);
+      return;
+    }
+    const findMerged = async () => {
+        const leadsRef = collection(firestore, 'leads');
+        const q = query(leadsRef, where('merged_into', '==', lead.id));
+        try {
+            const querySnapshot = await getDocs(q);
+            const foundMerged = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lead));
+            setMergedLeads(foundMerged);
+        } catch(e) {
+            console.error("Error finding merged leads:", e);
+            setMergedLeads([]);
+        }
+    }
+    findMerged();
+  }, [firestore, lead]);
+
+  const handleMerge = async (masterLeadId: string) => {
+    if (!firestore || !lead) return;
+
+    const leadToMergeRef = doc(firestore, 'leads', lead.id);
+    try {
+        await updateDoc(leadToMergeRef, {
+            lead_status: 'merged',
+            merged_into: masterLeadId,
+        });
+
+        toast({
+            title: "Merge Successful",
+            description: `${lead.full_name || lead.company_name} has been merged.`,
+        });
+
+        router.push('/leads');
+
+    } catch (e) {
+        console.error("Error merging lead:", e);
+        toast({
+            variant: "destructive",
+            title: "Merge Failed",
+            description: "Could not merge the lead. Please try again.",
+        })
+    }
+  }
 
 
   const leadName = lead?.full_name || lead?.company_name;
@@ -111,6 +166,35 @@ export default function LeadDetailPage() {
   
   if (!lead && !(userLoading || leadLoading)) {
     notFound();
+  }
+
+  // Show a holding page if the lead has been merged
+  if (lead && lead.lead_status === 'merged') {
+    return (
+        <div className="flex flex-col items-center justify-center h-full text-center p-4">
+             <Card className="p-8 max-w-md w-full">
+                <CardHeader>
+                    <CardTitle className="font-headline text-2xl">Lead Archived</CardTitle>
+                    <CardDescription>This lead has been archived by merging it into another lead.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {lead.merged_into ? (
+                        <Button asChild>
+                            <Link href={`/leads/${lead.merged_into}`}>
+                                View Master Lead <ArrowRight className="ml-2 h-4 w-4"/>
+                            </Link>
+                        </Button>
+                    ) : (
+                       <Button asChild>
+                            <Link href="/leads">
+                                Back to Leads
+                            </Link>
+                        </Button>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    )
   }
   
   if (userLoading || leadLoading || !lead) {
@@ -146,6 +230,8 @@ export default function LeadDetailPage() {
       : lead.independent_score > 50
       ? '[&>div]:bg-amber-400'
       : '[&>div]:bg-red-400';
+      
+  const hasAssociatedLeads = potentialDuplicates.length > 0 || mergedLeads.length > 0;
 
   return (
     <div className="space-y-6">
@@ -237,10 +323,10 @@ export default function LeadDetailPage() {
                     </Badge>
                 </div>
 
-                {duplicates.length > 0 && (
-                    <Button variant="secondary" className="w-full bg-amber-500 hover:bg-amber-600 text-black" onClick={() => setShowDuplicatesDialog(true)}>
-                        <Users className="mr-2 h-4 w-4" />
-                        Vezi duplicate ({duplicates.length})
+                {hasAssociatedLeads && (
+                    <Button variant="secondary" className="w-full bg-amber-500 hover:bg-amber-600 text-black" onClick={() => setShowAssociatedLeadsDialog(true)}>
+                        <LinkIcon className="mr-2 h-4 w-4" />
+                        Associated Leads ({potentialDuplicates.length + mergedLeads.length})
                     </Button>
                 )}
 
@@ -260,11 +346,13 @@ export default function LeadDetailPage() {
           </Card>
         </div>
       </div>
-       <DuplicateLeadsDialog 
-        open={showDuplicatesDialog} 
-        onOpenChange={setShowDuplicatesDialog} 
-        duplicates={duplicates}
-        originalLeadPhone={lead.phone || ''}
+       <AssociatedLeadsDialog 
+        open={showAssociatedLeadsDialog} 
+        onOpenChange={setShowAssociatedLeadsDialog} 
+        potentialDuplicates={potentialDuplicates}
+        mergedLeads={mergedLeads}
+        onMerge={handleMerge}
+        currentLeadName={leadName || 'this lead'}
       />
     </div>
   );

@@ -20,6 +20,11 @@ export default function LeadsPage() {
 
   const { data: leads, loading: leadsLoading, error } = useCollection<Lead>(leadsQuery);
 
+  const activeLeads = useMemo(() => {
+    if (!leads) return [];
+    return leads.filter(lead => lead.lead_status !== 'merged');
+  }, [leads]);
+
   const isLoading = userLoading || leadsLoading;
 
   return (
@@ -30,7 +35,7 @@ export default function LeadsPage() {
           Add Lead
         </Button>
       </PageHeader>
-      <DataTable columns={columns} data={leads || []} isLoading={isLoading} />
+      <DataTable columns={columns} data={activeLeads || []} isLoading={isLoading} />
     </div>
   );
 }
