@@ -50,8 +50,9 @@ export default function LoginPage() {
     let title = "Authentication Failed";
     let description = "An unexpected error occurred. Please try again.";
     let duration = 5000;
+    const errorCode = typeof error?.code === 'string' ? error.code : '';
 
-    switch (error.code) {
+    switch (errorCode) {
       case 'auth/user-not-found':
         title = 'User Not Found';
         description = 'No account found with this email. Please sign up.';
@@ -85,8 +86,42 @@ export default function LoginPage() {
         description = 'This domain is not authorized for sign-in. Please add it to the authorized domains in your Firebase console.';
         duration = 10000;
         break;
+      case 'auth/operation-not-allowed':
+        title = 'Sign-In Method Disabled';
+        description = 'This sign-in method is not enabled in Firebase Authentication. Enable Email/Password or Google in Firebase Console > Authentication > Sign-in method.';
+        duration = 10000;
+        break;
+      case 'auth/configuration-not-found':
+        title = 'Authentication Not Configured';
+        description = 'Firebase Authentication is not configured for this provider yet. Check Firebase Console > Authentication > Sign-in method.';
+        duration = 10000;
+        break;
+      case 'auth/invalid-credential':
+        title = 'Invalid Credentials';
+        description = 'The provided credentials are invalid or expired. Try again or use a different sign-in method.';
+        break;
+      case 'auth/invalid-api-key':
+        title = 'Invalid Firebase API Key';
+        description = 'The Firebase web app configuration is invalid. Check NEXT_PUBLIC_FIREBASE_API_KEY in .env.local.';
+        duration = 10000;
+        break;
+      case 'auth/network-request-failed':
+        title = 'Network Error';
+        description = 'Firebase Authentication could not reach the server. Check your internet connection and firewall/VPN settings.';
+        break;
+      case 'auth/popup-blocked':
+        title = 'Popup Blocked';
+        description = 'The Google sign-in popup was blocked by the browser. Allow popups for this site and try again.';
+        break;
     }
     
+    if (
+      title === 'Authentication Failed' &&
+      errorCode
+    ) {
+      description = `${description} (${errorCode})`;
+    }
+
     toast({ variant: 'destructive', title, description, duration });
   };
   
