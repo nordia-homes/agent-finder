@@ -21,10 +21,6 @@ export function LeadInfoCard({ lead }: { lead: Lead }) {
                                 <MapPin className="h-4 w-4" />
                                 <span>{lead.city}, {lead.county}</span>
                             </div>
-                             <div className="flex items-center gap-2">
-                                <Phone className="h-4 w-4" />
-                                <span>{lead.phone || 'N/A'}</span>
-                            </div>
                         </div>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center justify-start md:justify-end gap-2 w-full md:w-auto">

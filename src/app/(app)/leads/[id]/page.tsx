@@ -21,6 +21,7 @@ import { format } from 'date-fns';
 import { TasksSection } from '@/components/leads/tasks-section';
 import { AIExplanationDialog } from '@/components/leads/ai-explanation-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EditableLeadDetail } from '@/components/leads/editable-lead-detail';
 
 
 const classificationStyles: Record<Lead['classification'], string> = {
@@ -209,7 +210,8 @@ export default function LeadDetailPage() {
                 <div className="grid grid-cols-1 gap-3">
                     <DetailItem label="Company" value={lead.company_name} icon={Briefcase} />
                     <DetailItem label="Website" value={lead.website ? <a href={lead.website} target="_blank" rel="noopener noreferrer" className="hover:underline">{lead.website}</a> : '-'} icon={Globe} />
-                    <DetailItem label="Email" value={<a href={`mailto:${lead.email}`} className="hover:underline">{lead.email}</a>} icon={AtSign} />
+                    <EditableLeadDetail leadId={id} fieldKey="email" label="Email" value={lead.email} icon={AtSign} />
+                    <EditableLeadDetail leadId={id} fieldKey="phone" label="Phone" value={lead.phone} icon={Phone} />
                     <DetailItem label="Lead Source" value={lead.source} icon={Database} />
                     <DetailItem label="Active Listings" value={lead.active_listings_count} icon={List} />
                     <DetailItem label="Date Added" value={format(lead.created_at.toDate(), 'MMM d, yyyy')} icon={Calendar} />
