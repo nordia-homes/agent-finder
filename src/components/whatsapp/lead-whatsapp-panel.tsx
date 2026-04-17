@@ -1,11 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { collection, doc, limit, orderBy, query } from 'firebase/firestore';
 import { Loader2, MessageSquareShare, Send, ShieldAlert } from 'lucide-react';
 
-import { useCollection, useDoc, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { Lead, WhatsAppConversation, WhatsAppMessage, WhatsAppTemplate } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -18,36 +16,40 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 
 export function LeadWhatsAppPanel({ lead }: { lead: Lead }) {
-  const firestore = useFirestore();
   const { toast } = useToast();
   const [messageText, setMessageText] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [sending, setSending] = useState(false);
+  const [conversation, setConversation] = useState<WhatsAppConversation | null>(null);
+  const [allMessages, setAllMessages] = useState<WhatsAppMessage[]>([]);
+  const [templates, setTemplates] = useState<WhatsAppTemplate[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
 
-  const conversationRef = useMemo(() => {
-    if (!firestore || !lead.id) return null;
-    return doc(firestore, 'whatsapp_conversations', lead.id);
-  }, [firestore, lead.id]);
+  async function loadLeadWhatsAppData() {
+    setMessagesLoading(true);
+    try {
+      const response = await fetch(`/api/whatsapp/leads/${lead.id}`, { cache: 'no-store' });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Could not load WhatsApp data for this lead.');
+      }
+      setConversation(payload.conversation as WhatsAppConversation | null);
+      setAllMessages((payload.messages ?? []) as WhatsAppMessage[]);
+      setTemplates((payload.templates ?? []) as WhatsAppTemplate[]);
+    } catch (error) {
+      toast({
+        title: 'WhatsApp data unavailable',
+        description: error instanceof Error ? error.message : 'Unexpected load error.',
+        variant: 'destructive',
+      });
+    } finally {
+      setMessagesLoading(false);
+    }
+  }
 
-  const { data: conversation } = useDoc<WhatsAppConversation>(conversationRef);
-
-  const messagesQuery = useMemo(() => {
-    if (!firestore || !lead.id) return null;
-    return query(
-      collection(firestore, 'whatsapp_messages'),
-      orderBy('createdAt', 'desc'),
-      limit(25)
-    );
-  }, [firestore, lead.id]);
-
-  const { data: allMessages, loading: messagesLoading } = useCollection<WhatsAppMessage>(messagesQuery);
-
-  const templatesQuery = useMemo(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'whatsapp_templates'), orderBy('updatedAt', 'desc'), limit(30));
-  }, [firestore]);
-
-  const { data: templates } = useCollection<WhatsAppTemplate>(templatesQuery);
+  useEffect(() => {
+    void loadLeadWhatsAppData();
+  }, [lead.id]);
 
   const messages = useMemo(
     () => (allMessages ?? []).filter((message) => message.leadId === lead.id),
@@ -78,6 +80,7 @@ export function LeadWhatsAppPanel({ lead }: { lead: Lead }) {
         description: 'The free-form message was sent through Infobip.',
       });
       setMessageText('');
+      await loadLeadWhatsAppData();
     } catch (error) {
       toast({
         title: 'Send failed',
@@ -120,6 +123,7 @@ export function LeadWhatsAppPanel({ lead }: { lead: Lead }) {
           : 'Template was sent to this lead.',
       });
       setSelectedTemplateId('');
+      await loadLeadWhatsAppData();
     } catch (error) {
       toast({
         title: 'Template send failed',

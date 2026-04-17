@@ -163,6 +163,29 @@ export async function listWhatsAppDashboardData() {
   };
 }
 
+export async function getLeadWhatsAppData(leadId: string) {
+  const [leadSnap, conversationSnap, messagesSnap, templatesSnap] = await Promise.all([
+    collectionRef('leads').doc(leadId).get(),
+    collectionRef('whatsapp_conversations').doc(leadId).get(),
+    collectionRef('whatsapp_messages')
+      .where('leadId', '==', leadId)
+      .orderBy('createdAt', 'desc')
+      .limit(25)
+      .get(),
+    collectionRef('whatsapp_templates').orderBy('updatedAt', 'desc').limit(30).get(),
+  ]);
+
+  if (!leadSnap.exists) {
+    throw new Error('Lead not found.');
+  }
+
+  return {
+    conversation: conversationSnap.exists ? { id: conversationSnap.id, ...conversationSnap.data() } : null,
+    messages: messagesSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Record<string, unknown>)),
+    templates: templatesSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Record<string, unknown>)),
+  };
+}
+
 export async function createTemplate(payload: unknown) {
   const data = createTemplateSchema.parse(payload);
   const { sender } = getRequiredInfobipConfig();
