@@ -10,8 +10,11 @@ export default function AppLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const sidebarCookie = cookies().get('sidebar_state');
-  const defaultOpen = sidebarCookie?.value !== 'false';
+  const sidebarCookie = cookies();
+  const sidebarState = typeof (sidebarCookie as any).get === 'function'
+    ? (sidebarCookie as any).get('sidebar_state')
+    : undefined;
+  const defaultOpen = sidebarState?.value !== 'false';
 
   return (
     <AppProviders>

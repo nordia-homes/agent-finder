@@ -43,6 +43,7 @@ const STATUS_TO_STAGE_MAP: Record<Lead['lead_status'], string> = {
   closed_won: 'closed_won',
   closed_lost: 'lost',
   not_relevant: 'lost',
+  merged: 'lost',
 };
 
 const StageButton = React.forwardRef<

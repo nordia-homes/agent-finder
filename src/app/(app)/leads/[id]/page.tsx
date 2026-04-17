@@ -26,6 +26,7 @@ import { AssociatedLeadsDialog } from '@/components/leads/associated-leads-dialo
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { LeadWhatsAppPanel } from '@/components/whatsapp/lead-whatsapp-panel';
 
 
 const classificationStyles: Record<Lead['classification'], string> = {
@@ -247,15 +248,7 @@ export default function LeadDetailPage() {
               <TabsTrigger value="ai-call"><Phone className="mr-2 h-4 w-4"/>AI Call</TabsTrigger>
             </TabsList>
             <TabsContent value="whatsapp" className="mt-6">
-              <Card>
-                <CardHeader>
-                    <CardTitle>WhatsApp Communication</CardTitle>
-                    <CardDescription>Select a template and view conversation history.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground">WhatsApp integration coming soon.</p>
-                </CardContent>
-              </Card>
+              <LeadWhatsAppPanel lead={lead} />
             </TabsContent>
             <TabsContent value="email" className="mt-6">
               <Card>

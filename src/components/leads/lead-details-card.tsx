@@ -50,7 +50,7 @@ export function LeadDetailsCard({ lead }: { lead: Lead }) {
             />
              <DetailItem 
                 label="Date Added" 
-                value={format(new Date(lead.created_at), 'MMM d, yyyy')} 
+                value={format(lead.created_at.toDate(), 'MMM d, yyyy')} 
             />
         </div>
     );

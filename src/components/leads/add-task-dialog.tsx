@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 
-const taskTypes: Task['type'][] = ['call', 'follow_up', 'demo', 'review', 'reply_check'];
+const taskTypes = ['call', 'follow_up', 'demo', 'review', 'reply_check'] as const satisfies readonly Task['type'][];
 
 const taskFormSchema = z.object({
   type: z.enum(taskTypes, {

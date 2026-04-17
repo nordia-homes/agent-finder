@@ -28,6 +28,7 @@ const leadStatusStyles: Record<Lead['lead_status'], string> = {
   closed_won: 'bg-green-100 text-green-800',
   closed_lost: 'bg-red-100 text-red-800',
   not_relevant: 'bg-stone-100 text-stone-800',
+  merged: 'bg-zinc-100 text-zinc-800',
 };
 
 export const columns: ColumnDef<Lead>[] = [

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Campaign as CampaignType } from "@/lib/types";
+import { WhatsAppDashboard } from "@/components/whatsapp/whatsapp-dashboard";
 
 // Mock data, this will come from firebase
 const campaigns = [
@@ -245,7 +246,9 @@ export default function CampaignsPage() {
              <CampaignsGrid campaigns={campaigns} channel="ai_call" />
         </TabsContent>
         <TabsContent value="whatsapp">
-            <CampaignsGrid campaigns={campaigns} channel="whatsapp" />
+            <div className="mt-6">
+              <WhatsAppDashboard />
+            </div>
         </TabsContent>
         <TabsContent value="email">
             <CampaignsGrid campaigns={campaigns} channel="email" />

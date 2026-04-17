@@ -6,7 +6,7 @@ import { onSnapshot } from 'firebase/firestore';
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
-export function useDoc<T extends DocumentData>(ref: DocumentReference<T> | null) {
+export function useDoc<T extends DocumentData>(ref: DocumentReference<DocumentData> | DocumentReference<T> | null) {
     const [data, setData] = useState<T | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<FirestoreError | FirestorePermissionError | null>(null);
@@ -21,7 +21,7 @@ export function useDoc<T extends DocumentData>(ref: DocumentReference<T> | null)
 
         const unsubscribe = onSnapshot(ref, (doc) => {
             if (doc.exists()) {
-                setData({ ...doc.data(), id: doc.id } as T);
+                setData({ ...doc.data(), id: doc.id } as unknown as T);
             } else {
                 setData(null);
             }

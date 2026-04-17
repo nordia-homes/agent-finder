@@ -80,6 +80,202 @@ export type Campaign = {
   lead_ids: string[];
 };
 
+export type WhatsAppTemplateStatus =
+  | 'draft'
+  | 'submitted'
+  | 'pending_approval'
+  | 'approved'
+  | 'rejected'
+  | 'paused'
+  | 'archived';
+
+export type WhatsAppCampaignStatus =
+  | 'draft'
+  | 'scheduled'
+  | 'active'
+  | 'paused'
+  | 'completed'
+  | 'failed';
+
+export type WhatsAppAutomationStatus = 'active' | 'paused' | 'draft';
+
+export type WhatsAppRecipientStatus =
+  | 'queued'
+  | 'sent'
+  | 'delivered'
+  | 'seen'
+  | 'replied'
+  | 'failed'
+  | 'skipped';
+
+export type WhatsAppMessageDirection = 'inbound' | 'outbound';
+export type WhatsAppMessageType = 'template' | 'free_form';
+export type WhatsAppJobStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+export type WhatsAppTriggerType =
+  | 'manual'
+  | 'scheduled'
+  | 'lead_status_changed'
+  | 'reply_missing'
+  | 'demo_booked';
+
+export type WhatsAppTemplateButton = {
+  type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER';
+  text: string;
+  url?: string;
+  payload?: string;
+};
+
+export type WhatsAppTemplateVariable = {
+  key: string;
+  index: number;
+  label: string;
+  sample: string;
+};
+
+export type WhatsAppTemplate = {
+  id: string;
+  name: string;
+  language: string;
+  category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
+  status: WhatsAppTemplateStatus;
+  sender: string;
+  headerType: 'TEXT' | 'NONE';
+  headerText?: string;
+  bodyText: string;
+  footerText?: string;
+  variables: WhatsAppTemplateVariable[];
+  buttons: WhatsAppTemplateButton[];
+  structure?: Record<string, unknown>;
+  infobipTemplateId?: string | null;
+  rejectionReason?: string | null;
+  lastSyncedAt?: Timestamp | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;
+};
+
+export type WhatsAppCampaign = {
+  id: string;
+  name: string;
+  description: string;
+  templateId: string;
+  templateName: string;
+  templateLanguage: string;
+  sender: string;
+  status: WhatsAppCampaignStatus;
+  sendMode: 'manual' | 'send_now' | 'scheduled' | 'automation';
+  scheduledAt?: Timestamp | null;
+  timezone: string;
+  segmentSnapshot?: string | null;
+  leadIds: string[];
+  leadCount: number;
+  queuedCount: number;
+  sentCount: number;
+  deliveredCount: number;
+  seenCount: number;
+  replyCount: number;
+  failedCount: number;
+  lastDispatchedAt?: Timestamp | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  ownerId: string;
+};
+
+export type WhatsAppCampaignRecipient = {
+  id: string;
+  campaignId: string;
+  leadId: string;
+  phone: string;
+  templateParams: string[];
+  status: WhatsAppRecipientStatus;
+  infobipMessageId?: string | null;
+  failureReason?: string | null;
+  attemptCount: number;
+  queuedAt?: Timestamp | null;
+  sentAt?: Timestamp | null;
+  deliveredAt?: Timestamp | null;
+  seenAt?: Timestamp | null;
+  repliedAt?: Timestamp | null;
+  lastEventAt?: Timestamp | null;
+};
+
+export type WhatsAppMessage = {
+  id: string;
+  leadId: string;
+  campaignId?: string | null;
+  conversationId: string;
+  direction: WhatsAppMessageDirection;
+  messageType: WhatsAppMessageType;
+  templateId?: string | null;
+  templateName?: string | null;
+  contentPreview: string;
+  rawPayload?: Record<string, unknown>;
+  status: WhatsAppRecipientStatus;
+  infobipMessageId?: string | null;
+  inReplyTo?: string | null;
+  sentAt?: Timestamp | null;
+  deliveredAt?: Timestamp | null;
+  seenAt?: Timestamp | null;
+  createdAt: Timestamp;
+};
+
+export type WhatsAppConversation = {
+  id: string;
+  leadId: string;
+  phone: string;
+  lastInboundAt?: Timestamp | null;
+  lastOutboundAt?: Timestamp | null;
+  lastMessagePreview: string;
+  sessionWindowClosesAt?: Timestamp | null;
+  unreadCount: number;
+  status: 'active' | 'inactive';
+};
+
+export type WhatsAppEvent = {
+  id: string;
+  type: string;
+  leadId?: string | null;
+  campaignId?: string | null;
+  messageId?: string | null;
+  eventAt: Timestamp;
+  payload: Record<string, unknown>;
+  source: 'infobip_webhook' | 'system' | 'user';
+};
+
+export type WhatsAppAutomation = {
+  id: string;
+  name: string;
+  description: string;
+  status: WhatsAppAutomationStatus;
+  triggerType: WhatsAppTriggerType;
+  triggerConfig: Record<string, unknown>;
+  templateId: string;
+  sender: string;
+  delayMinutes?: number | null;
+  schedule?: string | null;
+  timezone: string;
+  filters: Record<string, unknown>;
+  stopConditions: Record<string, unknown>;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  ownerId: string;
+};
+
+export type WhatsAppScheduledJob = {
+  id: string;
+  jobType: 'campaign_dispatch' | 'automation_dispatch';
+  status: WhatsAppJobStatus;
+  campaignId?: string | null;
+  automationId?: string | null;
+  leadId?: string | null;
+  runAt: Timestamp;
+  timezone: string;
+  payload: Record<string, unknown>;
+  lastAttemptAt?: Timestamp | null;
+  attemptCount: number;
+  error?: string | null;
+};
+
 export type NavItem = {
   href: string;
   label: string;

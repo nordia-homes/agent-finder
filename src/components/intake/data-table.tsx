@@ -74,7 +74,7 @@ export function DataTable<TData extends {id: string, independent_score?: number,
     },
     globalFilterFn: (row, columnId, filterValue) => {
         const search = filterValue.toLowerCase();
-        const value = row.original as Import;
+        const value = row.original as unknown as Import;
         const companyName = value.company_name?.toLowerCase() || '';
         const fullName = value.full_name?.toLowerCase() || '';
         return companyName.includes(search) || fullName.includes(search);
@@ -208,7 +208,7 @@ export function DataTable<TData extends {id: string, independent_score?: number,
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => {
-                const importData = row.original as Import;
+                const importData = row.original as unknown as Import;
                 const score = importData.independent_score || 0;
                 return (
                     <TableRow

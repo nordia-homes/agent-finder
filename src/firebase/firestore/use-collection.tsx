@@ -6,7 +6,7 @@ import { onSnapshot } from 'firebase/firestore';
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
-export function useCollection<T extends DocumentData>(query: Query<T> | null) {
+export function useCollection<T extends DocumentData>(query: Query<DocumentData> | Query<T> | null) {
     const [data, setData] = useState<T[] | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<FirestoreError | FirestorePermissionError | null>(null);
@@ -20,7 +20,7 @@ export function useCollection<T extends DocumentData>(query: Query<T> | null) {
         setLoading(true);
 
         const unsubscribe = onSnapshot(query, (snapshot) => {
-            const result: T[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as T));
+            const result: T[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as T));
             setData(result);
             setLoading(false);
             setError(null);
