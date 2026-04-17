@@ -76,12 +76,12 @@ export default function LeadDetailPage() {
     const findDuplicates = async () => {
       const leadsRef = collection(firestore, 'leads');
       // Look for other active leads with the same phone number
-      const q = query(leadsRef, where('phone', '==', lead.phone), where('lead_status', '!=', 'merged'));
+      const q = query(leadsRef, where('phone', '==', lead.phone));
       try {
         const querySnapshot = await getDocs(q);
         const foundDuplicates = querySnapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() } as Lead))
-            .filter(l => l.id !== lead.id);
+            .filter(l => l.id !== lead.id && l.lead_status !== 'merged');
         
         setPotentialDuplicates(foundDuplicates);
       } catch (e) {
