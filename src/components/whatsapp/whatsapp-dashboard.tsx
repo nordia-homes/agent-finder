@@ -1,11 +1,13 @@
 'use client';
 
-import { useMemo, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { format, formatDistanceToNow, isToday } from 'date-fns';
+import { createPortal } from 'react-dom';
 import {
   AlertCircle,
   Bot,
   CalendarClock,
+  CalendarIcon,
   CheckCheck,
   ChevronRight,
   CircleAlert,
@@ -51,7 +53,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 
 type TimestampLike = { _seconds?: number; seconds?: number; toDate?: () => Date } | null | undefined;
-type DashboardLead = { id: string; full_name?: string; company_name?: string; phone?: string; city?: string; classification?: string; independent_score?: number; owner_id?: string; };
+type DashboardLead = { id: string; full_name?: string; company_name?: string; phone?: string; city?: string; classification?: string; independent_score?: number; owner_id?: string; lead_status?: string; };
 type DashboardRecord = Record<string, any>;
 type DashboardPayload = {
   health: { infobipConfigured: boolean; senderConfigured: boolean; webhookActive: boolean; approvedTemplatesAvailable: boolean; schedulerActive: boolean; campaignsNeedAttention: boolean; };
@@ -82,6 +84,17 @@ const MAX_TEMPLATE_BUTTONS = 3;
 const HEADER_TEXT_MAX_LENGTH = 60;
 const FOOTER_TEXT_MAX_LENGTH = 60;
 const BUTTON_TEXT_MAX_LENGTH = 25;
+const LEAD_STATUS_OPTIONS = [
+  { value: 'new', label: 'Nou' },
+  { value: 'reviewed', label: 'Reviewed' },
+  { value: 'qualified', label: 'Qualified' },
+  { value: 'contacted', label: 'Contactat' },
+  { value: 'replied', label: 'A raspuns' },
+  { value: 'demo_booked', label: 'Demo booked' },
+  { value: 'closed_won', label: 'Closed won' },
+  { value: 'closed_lost', label: 'Closed lost' },
+  { value: 'not_relevant', label: 'Not relevant' },
+] as const;
 
 function extractPlaceholderIndexes(bodyText: string) {
   const matches = bodyText.match(/{{\d+}}/g) ?? [];
@@ -120,6 +133,12 @@ function formatRelative(value: TimestampLike) {
 
 function safeNumber(value: unknown) {
   return typeof value === 'number' ? value : Number(value ?? 0);
+}
+
+function parseScheduledDateTime(value?: string) {
+  if (!value) return undefined;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
 const templateStatusStyles: Record<string, string> = {
@@ -172,13 +191,16 @@ export function WhatsAppDashboard() {
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
+  const [schedulePickerOpen, setSchedulePickerOpen] = useState(false);
   const [automationDialogOpen, setAutomationDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [mediaUploading, setMediaUploading] = useState(false);
+  const scheduleTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [templateFilter, setTemplateFilter] = useState<'all' | 'approved' | 'pending' | 'rejected' | 'draft'>('all');
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'scheduled' | 'draft' | 'attention'>('all');
   const [inboxSearch, setInboxSearch] = useState('');
   const [previewLeadId, setPreviewLeadId] = useState('');
+  const [schedulePickerPosition, setSchedulePickerPosition] = useState({ top: 0, left: 0 });
   const [templateForm, setTemplateForm] = useState({
     name: '',
     language: 'en',
@@ -192,7 +214,7 @@ export function WhatsAppDashboard() {
     variables: createDefaultVariables(),
     buttons: createDefaultButtons(),
   });
-  const [campaignForm, setCampaignForm] = useState({ name: '', description: '', templateId: '', sendMode: 'send_now', scheduledAt: '', timezone: 'Europe/Bucharest', leadIds: [] as string[], search: '', city: 'all', classification: 'all', owner: 'all', minScore: '0' });
+  const [campaignForm, setCampaignForm] = useState({ name: '', description: '', templateId: '', sendMode: 'send_now', scheduledAt: '', timezone: 'Europe/Bucharest', leadIds: [] as string[], search: '', city: 'all', classification: 'all', owner: 'all', minScore: '0', statuses: [] as string[] });
   const [automationForm, setAutomationForm] = useState({ name: '', description: '', templateId: '', triggerType: 'scheduled', schedule: '0 9 * * 1', delayMinutes: '60', timezone: 'Europe/Bucharest' });
 
   const leads = data?.leads ?? [];
@@ -203,6 +225,16 @@ export function WhatsAppDashboard() {
   const events = data?.events ?? [];
   const scheduledJobs = data?.scheduledJobs ?? [];
   const previewLead = useMemo(() => leads.find((lead) => lead.id === previewLeadId) ?? leads[0] ?? null, [leads, previewLeadId]);
+  const selectedCampaignTemplate = useMemo(
+    () => templates.find((template) => template.id === campaignForm.templateId) ?? null,
+    [campaignForm.templateId, templates]
+  );
+  const selectedLeadStatusLabels = useMemo(
+    () =>
+      LEAD_STATUS_OPTIONS.filter((option) => campaignForm.statuses.includes(option.value)).map((option) => option.label),
+    [campaignForm.statuses]
+  );
+  const scheduledDateValue = useMemo(() => parseScheduledDateTime(campaignForm.scheduledAt), [campaignForm.scheduledAt]);
   const owners = useMemo(() => Array.from(new Set(leads.map((lead) => lead.owner_id).filter(Boolean))) as string[], [leads]);
   const cities = useMemo(() => Array.from(new Set(leads.map((lead) => lead.city).filter(Boolean))) as string[], [leads]);
   const metrics = useMemo(() => ({ activeCampaigns: campaigns.filter((campaign) => campaign.status === 'active').length, pendingTemplates: templates.filter((template) => ['submitted', 'pending_approval'].includes(template.status)).length, delivered: campaigns.reduce((sum, campaign) => sum + safeNumber(campaign.deliveredCount), 0), seen: campaigns.reduce((sum, campaign) => sum + safeNumber(campaign.seenCount), 0), replies: campaigns.reduce((sum, campaign) => sum + safeNumber(campaign.replyCount), 0) }), [campaigns, templates]);
@@ -212,14 +244,16 @@ export function WhatsAppDashboard() {
     return leads.filter((lead) => {
       const searchable = `${lead.full_name ?? ''} ${lead.company_name ?? ''} ${lead.phone ?? ''}`.toLowerCase();
       const score = Number(lead.independent_score ?? 0);
-      return (!search || searchable.includes(search)) && (campaignForm.city === 'all' || lead.city === campaignForm.city) && (campaignForm.classification === 'all' || lead.classification === campaignForm.classification) && (campaignForm.owner === 'all' || lead.owner_id === campaignForm.owner) && score >= minScore;
+      const statusMatches = campaignForm.statuses.length === 0 || (lead.lead_status ? campaignForm.statuses.includes(lead.lead_status) : false);
+      return (!search || searchable.includes(search)) && (campaignForm.city === 'all' || lead.city === campaignForm.city) && (campaignForm.classification === 'all' || lead.classification === campaignForm.classification) && (campaignForm.owner === 'all' || lead.owner_id === campaignForm.owner) && statusMatches && score >= minScore;
     });
   }, [campaignForm, leads]);
   const audienceStats = useMemo(() => {
     const selectedLeads = leads.filter((lead) => campaignForm.leadIds.includes(lead.id));
     const eligibleVisible = filteredAudienceLeads.filter((lead) => Boolean(lead.phone));
     const selectedEligible = selectedLeads.filter((lead) => Boolean(lead.phone));
-    return { totalVisible: filteredAudienceLeads.length, eligibleVisible: eligibleVisible.length, selected: selectedLeads.length, selectedEligible: selectedEligible.length, selectedMissingPhone: selectedLeads.length - selectedEligible.length };
+    const selectedMissingStatus = selectedLeads.filter((lead) => campaignForm.statuses.length > 0 && (!lead.lead_status || !campaignForm.statuses.includes(lead.lead_status))).length;
+    return { totalVisible: filteredAudienceLeads.length, eligibleVisible: eligibleVisible.length, selected: selectedLeads.length, selectedEligible: selectedEligible.length, selectedMissingPhone: selectedLeads.length - selectedEligible.length, selectedOutsideStatus: selectedMissingStatus };
   }, [campaignForm.leadIds, filteredAudienceLeads, leads]);
   const filteredTemplates = useMemo(() => templateFilter === 'all' ? templates : templateFilter === 'pending' ? templates.filter((template) => ['submitted', 'pending_approval'].includes(template.status)) : templates.filter((template) => template.status === templateFilter), [templateFilter, templates]);
   const filteredCampaigns = useMemo(() => campaignFilter === 'all' ? campaigns : campaignFilter === 'attention' ? campaigns.filter((campaign) => safeNumber(campaign.failedCount) > 0) : campaigns.filter((campaign) => campaign.status === campaignFilter), [campaignFilter, campaigns]);
@@ -241,6 +275,34 @@ export function WhatsAppDashboard() {
     }
     return preview;
   }, [previewLead, templateForm.bodyText, templateForm.variables]);
+
+  useEffect(() => {
+    if (!schedulePickerOpen) return;
+
+    const updateSchedulePickerPosition = () => {
+      const trigger = scheduleTriggerRef.current;
+      if (!trigger) return;
+      const rect = trigger.getBoundingClientRect();
+      const pickerWidth = 320;
+      const viewportPadding = 16;
+      setSchedulePickerPosition({
+        top: rect.bottom + 8,
+        left: Math.min(
+          Math.max(viewportPadding, rect.right - pickerWidth),
+          window.innerWidth - pickerWidth - viewportPadding
+        ),
+      });
+    };
+
+    updateSchedulePickerPosition();
+    window.addEventListener('resize', updateSchedulePickerPosition);
+    window.addEventListener('scroll', updateSchedulePickerPosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updateSchedulePickerPosition);
+      window.removeEventListener('scroll', updateSchedulePickerPosition, true);
+    };
+  }, [schedulePickerOpen]);
 
   function resetTemplateForm() {
     setEditingTemplateId(null);
@@ -268,6 +330,31 @@ export function WhatsAppDashboard() {
       preview = preview.replaceAll(variable.key, getLeadFieldValue(previewLead, variable.sourceField) || variable.sample || variable.key);
     }
     return preview;
+  }
+
+  function updateScheduledDate(date?: Date) {
+    if (!date) return;
+    const current = scheduledDateValue ?? new Date();
+    const next = new Date(current);
+    next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+    setCampaignForm((currentForm) => ({
+      ...currentForm,
+      scheduledAt: format(next, "yyyy-MM-dd'T'HH:mm"),
+    }));
+  }
+
+  function updateScheduledTime(time: string) {
+    const [hours, minutes] = time.split(':').map((value) => Number(value));
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return;
+
+    const current = scheduledDateValue ?? new Date();
+    const next = new Date(current);
+    next.setHours(hours, minutes, 0, 0);
+
+    setCampaignForm((currentForm) => ({
+      ...currentForm,
+      scheduledAt: format(next, "yyyy-MM-dd'T'HH:mm"),
+    }));
   }
 
   async function handleTemplateMediaUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -473,10 +560,26 @@ export function WhatsAppDashboard() {
     }
     setSubmitting(true);
     try {
-      await requestJson('POST', '/api/whatsapp/campaigns', { name: campaignForm.name, description: campaignForm.description, templateId: campaignForm.templateId, sendMode: campaignForm.sendMode, scheduledAt: campaignForm.scheduledAt ? new Date(campaignForm.scheduledAt).toISOString() : undefined, timezone: campaignForm.timezone, leadIds: campaignForm.leadIds });
+      await requestJson('POST', '/api/whatsapp/campaigns', {
+        name: campaignForm.name,
+        description: campaignForm.description,
+        templateId: campaignForm.templateId,
+        sendMode: campaignForm.sendMode,
+        scheduledAt: campaignForm.scheduledAt ? new Date(campaignForm.scheduledAt).toISOString() : undefined,
+        timezone: campaignForm.timezone,
+        leadIds: campaignForm.leadIds,
+        segmentSnapshot: JSON.stringify({
+          search: campaignForm.search,
+          city: campaignForm.city,
+          classification: campaignForm.classification,
+          owner: campaignForm.owner,
+          minScore: campaignForm.minScore,
+          statuses: campaignForm.statuses,
+        }),
+      });
       toast({ title: 'Campaign created', description: campaignForm.sendMode === 'send_now' ? 'Campaign was created and sent immediately.' : 'Campaign was saved with the selected configuration.' });
       setCampaignDialogOpen(false);
-      setCampaignForm({ name: '', description: '', templateId: '', sendMode: 'send_now', scheduledAt: '', timezone: 'Europe/Bucharest', leadIds: [], search: '', city: 'all', classification: 'all', owner: 'all', minScore: '0' });
+      setCampaignForm({ name: '', description: '', templateId: '', sendMode: 'send_now', scheduledAt: '', timezone: 'Europe/Bucharest', leadIds: [], search: '', city: 'all', classification: 'all', owner: 'all', minScore: '0', statuses: [] });
       await refresh();
     } catch (requestError) {
       toast({ title: 'Campaign creation failed', description: requestError instanceof Error ? requestError.message : 'Unexpected error.', variant: 'destructive' });
@@ -573,7 +676,7 @@ export function WhatsAppDashboard() {
             <CardDescription className="text-slate-300">Run campaigns, monitor health, review approvals, and triage replies from one operational workspace.</CardDescription>
           </div>
           <div className="flex flex-nowrap items-center gap-2 xl:shrink-0">
-            <Button variant="secondary" className="shrink-0" onClick={() => void refresh()} disabled={submitting}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button>
+            <Button variant="secondary" className="shrink-0" onClick={() => setCampaignDialogOpen(true)} disabled={submitting}><Send className="mr-2 h-4 w-4" />New Campaign</Button>
             <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
               <DialogTrigger asChild><Button className="shrink-0 bg-emerald-500 text-black hover:bg-emerald-400" onClick={() => resetTemplateForm()}><Sparkles className="mr-2 h-4 w-4" />New Template</Button></DialogTrigger>
               <DialogContent className="max-h-[90vh] max-w-5xl overflow-hidden p-0">
@@ -742,53 +845,403 @@ export function WhatsAppDashboard() {
             <p className="text-sm text-muted-foreground">Funnel: queued {campaigns.reduce((sum, campaign) => sum + safeNumber(campaign.queuedCount), 0)} · sent {campaigns.reduce((sum, campaign) => sum + safeNumber(campaign.sentCount), 0)} · delivered {metrics.delivered} · seen {metrics.seen} · replies {metrics.replies}</p>
           </div>
 
-          <Dialog open={campaignDialogOpen} onOpenChange={setCampaignDialogOpen}>
-            <DialogTrigger asChild><Button><Send className="mr-2 h-4 w-4" />New Campaign</Button></DialogTrigger>
-            <DialogContent className="max-w-5xl">
-              <DialogHeader><DialogTitle>Create WhatsApp Campaign</DialogTitle><DialogDescription>Build a campaign from approved templates and eligible lead audiences. Visibility filters help you target and audit before sending.</DialogDescription></DialogHeader>
-              <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
-                <div className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2"><Label>Campaign name</Label><Input value={campaignForm.name} onChange={(event) => setCampaignForm((current) => ({ ...current, name: event.target.value }))} placeholder="Q2 Reactivation - Approved WA Template" /></div>
-                    <div className="space-y-2"><Label>Template</Label><Select value={campaignForm.templateId} onValueChange={(value) => setCampaignForm((current) => ({ ...current, templateId: value }))}><SelectTrigger><SelectValue placeholder="Choose a template" /></SelectTrigger><SelectContent>{templates.map((template) => <SelectItem key={template.id} value={template.id}>{template.name} ({template.status})</SelectItem>)}</SelectContent></Select></div>
-                  </div>
-                  <div className="space-y-2"><Label>Description</Label><Textarea rows={3} value={campaignForm.description} onChange={(event) => setCampaignForm((current) => ({ ...current, description: event.target.value }))} placeholder="Send a compliant follow-up to high-intent leads collected this week." /></div>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="space-y-2"><Label>Send mode</Label><Select value={campaignForm.sendMode} onValueChange={(value) => setCampaignForm((current) => ({ ...current, sendMode: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="send_now">Send now</SelectItem><SelectItem value="scheduled">Scheduled</SelectItem><SelectItem value="manual">Save as draft</SelectItem></SelectContent></Select></div>
-                    <div className="space-y-2"><Label>Timezone</Label><Input value={campaignForm.timezone} onChange={(event) => setCampaignForm((current) => ({ ...current, timezone: event.target.value }))} /></div>
-                    <div className="space-y-2"><Label>Scheduled at</Label><Input type="datetime-local" value={campaignForm.scheduledAt} onChange={(event) => setCampaignForm((current) => ({ ...current, scheduledAt: event.target.value }))} disabled={campaignForm.sendMode !== 'scheduled'} /></div>
-                  </div>
-                  <div className="rounded-2xl border p-4">
-                    <div className="flex items-center gap-2"><Filter className="h-4 w-4 text-muted-foreground" /><p className="text-sm font-medium">Audience builder</p></div>
-                    <div className="mt-4 grid gap-3 md:grid-cols-5">
-                      <Input value={campaignForm.search} onChange={(event) => setCampaignForm((current) => ({ ...current, search: event.target.value }))} placeholder="Search leads" />
-                      <Select value={campaignForm.city} onValueChange={(value) => setCampaignForm((current) => ({ ...current, city: value }))}><SelectTrigger><SelectValue placeholder="City" /></SelectTrigger><SelectContent><SelectItem value="all">All cities</SelectItem>{cities.map((city) => <SelectItem key={city} value={city}>{city}</SelectItem>)}</SelectContent></Select>
-                      <Select value={campaignForm.classification} onValueChange={(value) => setCampaignForm((current) => ({ ...current, classification: value }))}><SelectTrigger><SelectValue placeholder="Classification" /></SelectTrigger><SelectContent><SelectItem value="all">All classifications</SelectItem><SelectItem value="likely_independent">Likely independent</SelectItem><SelectItem value="possible_independent">Possible independent</SelectItem><SelectItem value="agency">Agency</SelectItem></SelectContent></Select>
-                      <Select value={campaignForm.owner} onValueChange={(value) => setCampaignForm((current) => ({ ...current, owner: value }))}><SelectTrigger><SelectValue placeholder="Owner" /></SelectTrigger><SelectContent><SelectItem value="all">All owners</SelectItem>{owners.map((owner) => <SelectItem key={owner} value={owner}>{owner}</SelectItem>)}</SelectContent></Select>
-                      <Input value={campaignForm.minScore} onChange={(event) => setCampaignForm((current) => ({ ...current, minScore: event.target.value }))} placeholder="Min score" />
+          <Dialog
+            open={campaignDialogOpen}
+            onOpenChange={(open) => {
+              if (!open && schedulePickerOpen) {
+                return;
+              }
+              setCampaignDialogOpen(open);
+              if (!open) {
+                setSchedulePickerOpen(false);
+              }
+            }}
+          >
+            <DialogContent
+              className="max-h-[92vh] max-w-5xl overflow-hidden border-[#e7e1d6] bg-[#f7f3ed] p-0 shadow-[0_32px_90px_rgba(28,24,20,0.18)]"
+            >
+              <div className="flex h-full max-h-[92vh] flex-col">
+                <DialogHeader className="shrink-0 border-b border-[#e7dfd2] bg-[#f4efe7] px-6 py-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <DialogTitle className="text-[1.2rem] font-headline tracking-[-0.03em] text-[#1f1b18]">Create WhatsApp Campaign</DialogTitle>
+                      <DialogDescription className="mt-0.5 text-[12px] leading-4 text-[#6f6458]">
+                        Approved template, selected audience, clean launch.
+                      </DialogDescription>
                     </div>
-                    <div className="mt-4 grid gap-3 md:grid-cols-5">
-                      <div className="rounded-xl bg-muted/50 p-3 text-sm"><p className="text-muted-foreground">Visible leads</p><p className="font-semibold">{audienceStats.totalVisible}</p></div>
-                      <div className="rounded-xl bg-emerald-50 p-3 text-sm"><p className="text-emerald-700">Eligible</p><p className="font-semibold text-emerald-800">{audienceStats.eligibleVisible}</p></div>
-                      <div className="rounded-xl bg-muted/50 p-3 text-sm"><p className="text-muted-foreground">Selected</p><p className="font-semibold">{audienceStats.selected}</p></div>
-                      <div className="rounded-xl bg-sky-50 p-3 text-sm"><p className="text-sky-700">Selected eligible</p><p className="font-semibold text-sky-800">{audienceStats.selectedEligible}</p></div>
-                      <div className="rounded-xl bg-rose-50 p-3 text-sm"><p className="text-rose-700">Missing phone</p><p className="font-semibold text-rose-800">{audienceStats.selectedMissingPhone}</p></div>
+                    <div className="hidden min-w-[108px] rounded-[18px] border border-[#ddd3c3] bg-[#fbf8f3] px-3 py-2 text-right md:block">
+                      <p className="text-[10px] uppercase tracking-[0.14em] text-[#8a7d6d]">Eligible</p>
+                      <p className="mt-0.5 text-[1.25rem] font-semibold text-[#1f1b18]">{audienceStats.selectedEligible}</p>
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Button type="button" variant="outline" onClick={() => setCampaignForm((current) => ({ ...current, leadIds: Array.from(new Set([...current.leadIds, ...filteredAudienceLeads.map((lead) => lead.id)])) }))}>Select visible</Button>
-                      <Button type="button" variant="ghost" onClick={() => setCampaignForm((current) => ({ ...current, leadIds: [] }))}>Clear selection</Button>
-                    </div>
-                    <ScrollArea className="mt-4 h-64 rounded-xl border p-3">
-                      <div className="space-y-3">{filteredAudienceLeads.map((lead) => { const checked = campaignForm.leadIds.includes(lead.id); const eligible = Boolean(lead.phone); return <label key={lead.id} className="flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition hover:bg-muted/50"><Checkbox checked={checked} onCheckedChange={(value) => setCampaignForm((current) => ({ ...current, leadIds: value ? [...current.leadIds, lead.id] : current.leadIds.filter((id) => id !== lead.id) }))} /><div className="min-w-0 flex-1 space-y-1"><div className="flex flex-wrap items-center gap-2"><p className="font-medium">{lead.full_name || lead.company_name || 'Unnamed lead'}</p><Badge variant="outline" className={eligible ? 'border-emerald-200 text-emerald-700' : 'border-rose-200 text-rose-700'}>{eligible ? 'Eligible' : 'Missing phone'}</Badge></div><p className="text-sm text-muted-foreground">{lead.phone || 'No phone'} {lead.city ? `· ${lead.city}` : ''} {lead.classification ? `· ${lead.classification.replace('_', ' ')}` : ''}</p></div></label>; })}</div>
-                    </ScrollArea>
                   </div>
-                </div>
-                <div className="space-y-4">
-                  <Card className="border-amber-200 bg-amber-50"><CardHeader><CardTitle className="text-base">Pre-flight checks</CardTitle></CardHeader><CardContent className="space-y-3 text-sm text-amber-950"><div className="flex items-start gap-2"><ChevronRight className="mt-0.5 h-4 w-4" /><p>Immediate and scheduled campaigns should use an approved template.</p></div><div className="flex items-start gap-2"><ChevronRight className="mt-0.5 h-4 w-4" /><p>Selected eligible recipients: <span className="font-semibold">{audienceStats.selectedEligible}</span></p></div><div className="flex items-start gap-2"><ChevronRight className="mt-0.5 h-4 w-4" /><p>Selected leads missing phone numbers: <span className="font-semibold">{audienceStats.selectedMissingPhone}</span></p></div></CardContent></Card>
-                  <Card><CardHeader><CardTitle className="text-base">Recommended audiences</CardTitle><CardDescription>Starter segment ideas you can reproduce with the filters on the left.</CardDescription></CardHeader><CardContent className="space-y-3 text-sm"><div className="rounded-xl bg-muted/50 p-3">Likely independent leads in Bucharest with score above 70</div><div className="rounded-xl bg-muted/50 p-3">Leads owned by one agent for follow-up after a call</div><div className="rounded-xl bg-muted/50 p-3">Low-volume test audience with approved template before scaling</div></CardContent></Card>
-                </div>
+                </DialogHeader>
+                <ScrollArea className="min-h-0 flex-1">
+                  <div className="grid gap-6 px-6 py-6 xl:grid-cols-[1.2fr_0.8fr]">
+                    <div className="space-y-5">
+                      <Card className="overflow-hidden border-[#d7cab7] bg-[#e9dfd1] shadow-none">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base text-[#1f1b18]">Campaign setup</CardTitle>
+                          <CardDescription className="text-[#61574c]">Title, approved template, and timing.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-5">
+                          <div className="rounded-[22px] border border-[#d7cab7] bg-[#f7f1e8] p-4">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#786c5f]">Campaign identity</p>
+                            <div className="mt-3 grid gap-4 md:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label className="text-[#2b251f]">Campaign name</Label>
+                                <Input
+                                  value={campaignForm.name}
+                                  onChange={(event) => setCampaignForm((current) => ({ ...current, name: event.target.value }))}
+                                  placeholder="Q2 Reactivation - Approved WA Template"
+                                  className="border-[#cfc0ab] bg-[#fffaf3] text-[#1f1b18] placeholder:text-[#7b6f60]"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-[#2b251f]">Template</Label>
+                                <Select value={campaignForm.templateId} onValueChange={(value) => setCampaignForm((current) => ({ ...current, templateId: value }))}>
+                                  <SelectTrigger className="border-[#cfc0ab] bg-[#fffaf3] text-[#1f1b18]"><SelectValue placeholder="Choose a template" /></SelectTrigger>
+                                  <SelectContent>
+                                    {templates.map((template) => (
+                                      <SelectItem key={template.id} value={template.id}>
+                                        {template.name} ({template.status})
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="rounded-[22px] border border-[#d7cab7] bg-[#f7f1e8] p-4">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#786c5f]">Message context</p>
+                            <div className="mt-3 space-y-2">
+                              <Label className="text-[#2b251f]">Description</Label>
+                              <Textarea
+                                rows={3}
+                                value={campaignForm.description}
+                                onChange={(event) => setCampaignForm((current) => ({ ...current, description: event.target.value }))}
+                                placeholder="Send a compliant follow-up to high-intent leads collected this week."
+                                className="border-[#cfc0ab] bg-[#fffaf3] text-[#1f1b18] placeholder:text-[#7b6f60]"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="rounded-[22px] border border-[#d7cab7] bg-[#f7f1e8] p-4">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#786c5f]">Delivery settings</p>
+                            <div className="mt-3 grid gap-4 md:grid-cols-3">
+                              <div className="space-y-2">
+                                <Label className="text-[#2b251f]">Send mode</Label>
+                                <Select value={campaignForm.sendMode} onValueChange={(value) => setCampaignForm((current) => ({ ...current, sendMode: value }))}>
+                                  <SelectTrigger className="border-[#cfc0ab] bg-[#fffaf3] text-[#1f1b18]"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="send_now">Send now</SelectItem>
+                                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                                    <SelectItem value="manual">Save as draft</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-[#2b251f]">Timezone</Label>
+                                <Input
+                                  value={campaignForm.timezone}
+                                  onChange={(event) => setCampaignForm((current) => ({ ...current, timezone: event.target.value }))}
+                                  className="border-[#cfc0ab] bg-[#fffaf3] text-[#1f1b18] placeholder:text-[#7b6f60]"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-[#2b251f]">Scheduled at</Label>
+                                <div className="flex gap-2">
+                                  <Input
+                                    readOnly
+                                    value={scheduledDateValue ? format(scheduledDateValue, 'dd/MM/yyyy HH:mm') : ''}
+                                    placeholder="Date"
+                                    disabled={campaignForm.sendMode !== 'scheduled'}
+                                    className="border-[#cfc0ab] bg-[#fffaf3] text-[#1f1b18] placeholder:text-[#7b6f60]"
+                                  />
+                                  <>
+                                    <Button
+                                      ref={scheduleTriggerRef}
+                                      type="button"
+                                      variant="outline"
+                                      disabled={campaignForm.sendMode !== 'scheduled'}
+                                      className="shrink-0 border-[#cfc0ab] bg-[#fffaf3] text-[#1f1b18] hover:bg-[#f3ece2]"
+                                      onClick={() => {
+                                        if (campaignForm.sendMode !== 'scheduled') {
+                                          return;
+                                        }
+                                        setSchedulePickerOpen((current) => !current);
+                                      }}
+                                    >
+                                      <CalendarIcon className="h-4 w-4" />
+                                    </Button>
+                                    {schedulePickerOpen && typeof document !== 'undefined'
+                                      ? createPortal(
+                                      <div
+                                        className="fixed z-[80] w-[320px] rounded-[24px] border border-[#d8cbb9] bg-[#fbf7f1] p-4 shadow-[0_24px_60px_rgba(31,27,24,0.14)]"
+                                        style={{ top: schedulePickerPosition.top, left: schedulePickerPosition.left }}
+                                      >
+                                      <div className="space-y-4">
+                                        <div className="space-y-1">
+                                          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#8b7f72]">Schedule campaign</p>
+                                          <p className="text-sm text-[#62584d]">Choose the delivery date and time.</p>
+                                        </div>
+                                        <div className="grid gap-3 sm:grid-cols-2">
+                                          <div className="space-y-2">
+                                            <Label className="text-[#2b251f]">Date</Label>
+                                            <Input
+                                              type="date"
+                                              value={scheduledDateValue ? format(scheduledDateValue, 'yyyy-MM-dd') : ''}
+                                              onChange={(event) => {
+                                                const value = event.target.value;
+                                                if (!value) {
+                                                  setCampaignForm((current) => ({ ...current, scheduledAt: '' }));
+                                                  return;
+                                                }
+                                                const [year, month, day] = value.split('-').map(Number);
+                                                updateScheduledDate(new Date(year, month - 1, day));
+                                              }}
+                                              className="border-[#cfc0ab] bg-white text-[#1f1b18]"
+                                            />
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label className="text-[#2b251f]">Time</Label>
+                                            <Input
+                                              type="time"
+                                              value={scheduledDateValue ? format(scheduledDateValue, 'HH:mm') : ''}
+                                              onChange={(event) => {
+                                                updateScheduledTime(event.target.value);
+                                              }}
+                                              className="border-[#cfc0ab] bg-white text-[#1f1b18]"
+                                            />
+                                          </div>
+                                        </div>
+                                        <div className="rounded-[18px] border border-[#ddd3c3] bg-white px-4 py-3 text-sm text-[#5f5448]">
+                                          {scheduledDateValue
+                                            ? `Scheduled for ${format(scheduledDateValue, 'dd MMM yyyy, HH:mm')} (${campaignForm.timezone})`
+                                            : 'No date selected yet.'}
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            className="text-[#7a6d60] hover:bg-[#f0e7db] hover:text-[#1f1b18]"
+                                            onClick={() => {
+                                              setCampaignForm((current) => ({ ...current, scheduledAt: '' }));
+                                              setSchedulePickerOpen(false);
+                                            }}
+                                          >
+                                            Clear
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            className="bg-[#1f1b18] text-white hover:bg-[#2a2521]"
+                                            onClick={() => {
+                                              setSchedulePickerOpen(false);
+                                            }}
+                                          >
+                                            Apply
+                                          </Button>
+                                        </div>
+                                      </div>
+                                      </div>,
+                                      document.body
+                                    ) : null}
+                                  </>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="overflow-hidden border-[#e3dbcf] bg-[#fbf8f3] shadow-none">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center gap-2">
+                            <Filter className="h-4 w-4 text-[#7a6d60]" />
+                            <CardTitle className="text-base text-[#1f1b18]">Audience</CardTitle>
+                          </div>
+                          <CardDescription>
+                            Narrow the list, then select only the leads worth reaching.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-5">
+                          <div className="rounded-[22px] border border-[#e5ddd1] bg-[#fdfaf5] p-4">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#8b7f72]">Refine audience</p>
+                            <div className="mt-3 grid gap-3 md:grid-cols-5">
+                              <Input value={campaignForm.search} onChange={(event) => setCampaignForm((current) => ({ ...current, search: event.target.value }))} placeholder="Search leads" />
+                              <Select value={campaignForm.city} onValueChange={(value) => setCampaignForm((current) => ({ ...current, city: value }))}><SelectTrigger><SelectValue placeholder="City" /></SelectTrigger><SelectContent><SelectItem value="all">All cities</SelectItem>{cities.map((city) => <SelectItem key={city} value={city}>{city}</SelectItem>)}</SelectContent></Select>
+                              <Select value={campaignForm.classification} onValueChange={(value) => setCampaignForm((current) => ({ ...current, classification: value }))}><SelectTrigger><SelectValue placeholder="Classification" /></SelectTrigger><SelectContent><SelectItem value="all">All classifications</SelectItem><SelectItem value="likely_independent">Likely independent</SelectItem><SelectItem value="possible_independent">Possible independent</SelectItem><SelectItem value="agency">Agency</SelectItem></SelectContent></Select>
+                              <Select value={campaignForm.owner} onValueChange={(value) => setCampaignForm((current) => ({ ...current, owner: value }))}><SelectTrigger><SelectValue placeholder="Owner" /></SelectTrigger><SelectContent><SelectItem value="all">All owners</SelectItem>{owners.map((owner) => <SelectItem key={owner} value={owner}>{owner}</SelectItem>)}</SelectContent></Select>
+                              <Input value={campaignForm.minScore} onChange={(event) => setCampaignForm((current) => ({ ...current, minScore: event.target.value }))} placeholder="Min score" />
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <Label className="text-[#332c25]">Lead status</Label>
+                              {campaignForm.statuses.length > 0 ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setCampaignForm((current) => ({ ...current, statuses: [] }))}
+                                  className="text-[#7a6d60] hover:bg-[#f3ece2] hover:text-[#1f1b18]"
+                                >
+                                  Clear statuses
+                                </Button>
+                              ) : null}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {LEAD_STATUS_OPTIONS.map((status) => {
+                                const active = campaignForm.statuses.includes(status.value);
+                                return (
+                                  <Button
+                                    key={status.value}
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className={cn(
+                                      "rounded-full border-[#ddd3c3] bg-[#faf6f0] px-4 text-[#4f473f] hover:border-[#ccb89d] hover:bg-[#efe5d6] hover:text-[#1f1b18]",
+                                      active && "border-[#bfa889] bg-[#cfbea6] text-[#1f1b18] hover:border-[#b59d7d] hover:bg-[#c6b294] hover:text-[#1f1b18]"
+                                    )}
+                                    onClick={() =>
+                                      setCampaignForm((current) => ({
+                                        ...current,
+                                        statuses: active
+                                          ? current.statuses.filter((item) => item !== status.value)
+                                          : [...current.statuses, status.value],
+                                      }))
+                                    }
+                                  >
+                                    {status.label}
+                                  </Button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 rounded-[22px] border border-[#e5ddd1] bg-[#fcfaf6] px-4 py-3 text-sm">
+                            <span className="text-[#6f6458]">Visible <span className="ml-1 font-semibold text-[#1f1b18]">{audienceStats.totalVisible}</span></span>
+                            <span className="h-1 w-1 rounded-full bg-[#cbbba5]" />
+                            <span className="text-[#5f6d55]">Eligible <span className="ml-1 font-semibold text-[#22311e]">{audienceStats.eligibleVisible}</span></span>
+                            <span className="h-1 w-1 rounded-full bg-[#cbbba5]" />
+                            <span className="text-[#6f6458]">Selected <span className="ml-1 font-semibold text-[#1f1b18]">{audienceStats.selected}</span></span>
+                            {audienceStats.selectedMissingPhone > 0 ? (
+                              <>
+                                <span className="h-1 w-1 rounded-full bg-[#cbbba5]" />
+                                <span className="text-[#8a534c]">Missing phone <span className="ml-1 font-semibold text-[#6b2d26]">{audienceStats.selectedMissingPhone}</span></span>
+                              </>
+                            ) : null}
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex flex-wrap gap-2">
+                              <Button type="button" variant="outline" className="rounded-full border-[#d8cbb9] bg-[#fbf7f1] text-[#2e2822] hover:border-[#c9b69b] hover:bg-[#efe5d6] hover:text-[#1f1b18]" onClick={() => setCampaignForm((current) => ({ ...current, leadIds: Array.from(new Set([...current.leadIds, ...filteredAudienceLeads.map((lead) => lead.id)])) }))}>Select visible</Button>
+                              <Button type="button" variant="ghost" className="rounded-full text-[#7a6d60] hover:bg-[#f0e7db] hover:text-[#1f1b18]" onClick={() => setCampaignForm((current) => ({ ...current, leadIds: [] }))}>Clear selection</Button>
+                            </div>
+                            <p className="text-xs uppercase tracking-[0.14em] text-[#8b7f72]">{filteredAudienceLeads.length} leads in view</p>
+                          </div>
+
+                          <div className="rounded-[24px] border border-[#e3dbcf] bg-[#fcfaf6]">
+                            <ScrollArea className="h-[320px] p-3">
+                              <div className="space-y-3">
+                                {filteredAudienceLeads.map((lead) => {
+                                  const checked = campaignForm.leadIds.includes(lead.id);
+                                  const eligible = Boolean(lead.phone);
+                                  return (
+                                    <label key={lead.id} className={cn("flex cursor-pointer items-start gap-3 rounded-[22px] border p-4 transition", checked ? "border-[#c9b59a] bg-[#f5ede2]" : "border-[#e5ddd1] bg-[#fffcf8] hover:bg-[#faf6ef]")}>
+                                      <Checkbox checked={checked} onCheckedChange={(value) => setCampaignForm((current) => ({ ...current, leadIds: value ? [...current.leadIds, lead.id] : current.leadIds.filter((id) => id !== lead.id) }))} />
+                                      <div className="min-w-0 flex-1 space-y-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <p className="font-medium text-[#1f1b18]">{lead.full_name || lead.company_name || 'Unnamed lead'}</p>
+                                          <Badge variant="outline" className={eligible ? 'border-emerald-200 text-emerald-700' : 'border-rose-200 text-rose-700'}>
+                                            {eligible ? 'Eligible' : 'Missing phone'}
+                                          </Badge>
+                                          {lead.lead_status ? <Badge variant="secondary" className="bg-slate-100 text-slate-700">{lead.lead_status.replace('_', ' ')}</Badge> : null}
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                          {lead.phone || 'No phone'} {lead.city ? `· ${lead.city}` : ''} {lead.classification ? `· ${lead.classification.replace('_', ' ')}` : ''}
+                                        </p>
+                                      </div>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </ScrollArea>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <div className="space-y-4 xl:sticky xl:top-0 xl:self-start">
+                      <Card className="overflow-hidden border-[#d9cfbf] bg-[#efe6da] shadow-none">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base text-[#1f1b18]">Campaign snapshot</CardTitle>
+                          <CardDescription>Only the essentials.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4 text-sm">
+                          <div className="rounded-[22px] border border-[#ddd3c3] bg-[#fbf7f1] p-4">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Template</p>
+                            <p className="mt-1 font-medium">{selectedCampaignTemplate?.name || 'No template selected yet'}</p>
+                            <p className="mt-1 text-muted-foreground">
+                              {selectedCampaignTemplate ? `${selectedCampaignTemplate.status || 'draft'} template · ${selectedCampaignTemplate.language || 'en'}` : 'Choose a template to unlock approval and preview checks.'}
+                            </p>
+                          </div>
+                          <div className="rounded-[22px] border border-[#ddd3c3] bg-[#fbf7f1] p-4">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Delivery mode</p>
+                            <p className="mt-1 font-medium">
+                              {campaignForm.sendMode === 'send_now' ? 'Immediate send' : campaignForm.sendMode === 'scheduled' ? 'Scheduled send' : 'Saved as draft'}
+                            </p>
+                            <p className="mt-1 text-muted-foreground">
+                              {campaignForm.sendMode === 'scheduled' && campaignForm.scheduledAt
+                                ? `Scheduled for ${campaignForm.scheduledAt} (${campaignForm.timezone})`
+                                : campaignForm.sendMode === 'scheduled'
+                                  ? 'Choose a date and time before saving.'
+                                  : 'You can still edit audience and template after saving.'}
+                            </p>
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="rounded-[22px] border border-[#ddd3c3] bg-[#fbf7f1] p-4">
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Selected leads</p>
+                              <p className="mt-1 text-lg font-semibold">{audienceStats.selected}</p>
+                            </div>
+                            <div className="rounded-[22px] border border-[#ddd3c3] bg-[#fbf7f1] p-4">
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Eligible to send</p>
+                              <p className="mt-1 text-lg font-semibold">{audienceStats.selectedEligible}</p>
+                            </div>
+                          </div>
+                          <div className="rounded-[22px] border border-[#ddd3c3] bg-[#fbf7f1] p-4">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Lead statuses in audience</p>
+                            <p className="mt-1 font-medium">
+                              {selectedLeadStatusLabels.length ? selectedLeadStatusLabels.join(', ') : 'All lead statuses'}
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="overflow-hidden border-[#eadfce] bg-[#f6f1e8] shadow-none">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base text-[#1f1b18]">Pre-flight notes</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm text-[#5d5348]">
+                          <div className="flex items-start gap-2"><ChevronRight className="mt-0.5 h-4 w-4" /><p>Immediate and scheduled campaigns should use an approved template.</p></div>
+                          <div className="flex items-start gap-2"><ChevronRight className="mt-0.5 h-4 w-4" /><p>Selected eligible recipients: <span className="font-semibold">{audienceStats.selectedEligible}</span></p></div>
+                          <div className="flex items-start gap-2"><ChevronRight className="mt-0.5 h-4 w-4" /><p>Selected leads missing phone numbers: <span className="font-semibold">{audienceStats.selectedMissingPhone}</span></p></div>
+                          <div className="flex items-start gap-2"><ChevronRight className="mt-0.5 h-4 w-4" /><p>Lead status filters applied: <span className="font-semibold">{selectedLeadStatusLabels.length ? selectedLeadStatusLabels.join(', ') : 'All statuses'}</span></p></div>
+                          <div className="flex items-start gap-2"><ChevronRight className="mt-0.5 h-4 w-4" /><p>{campaignForm.sendMode === 'scheduled' ? 'Scheduling requires a date, time, and timezone.' : 'Draft mode is useful while approvals are still pending.'}</p></div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                </ScrollArea>
+                <DialogFooter className="shrink-0 border-t border-[#e7dfd2] bg-[#f4efe7] px-6 py-4">
+                  <div className="flex w-full items-center justify-between gap-3">
+                    <p className="text-sm text-[#6f6458]">
+                      {audienceStats.selectedEligible} eligible recipients ready{campaignForm.sendMode === 'scheduled' ? ' for scheduling' : ' for sending'}.
+                    </p>
+                    <Button className="bg-[#1f1b18] text-white hover:bg-[#2a2521]" onClick={() => void handleCreateCampaign()} disabled={submitting}>Save Campaign</Button>
+                  </div>
+                </DialogFooter>
               </div>
-              <DialogFooter><Button onClick={() => void handleCreateCampaign()} disabled={submitting}>Save Campaign</Button></DialogFooter>
             </DialogContent>
           </Dialog>
 

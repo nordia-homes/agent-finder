@@ -1,6 +1,5 @@
 'use client';
 
-import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Play, Pause, FolderArchive, Mail, MessageSquare, Phone, MoreVertical } from "lucide-react";
@@ -229,12 +228,34 @@ const CampaignsGrid = ({ campaigns, channel }: { campaigns: Campaign[], channel:
 export default function CampaignsPage() {
   return (
     <div>
-      <PageHeader title="Campaigns" description="Create, manage, and analyze your outreach campaigns.">
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Create Campaign
-        </Button>
-      </PageHeader>
+      <div className="mb-6 overflow-hidden rounded-[24px] border border-slate-200 bg-[linear-gradient(135deg,rgba(239,244,251,0.95),rgba(248,250,253,1)_45%,rgba(239,247,243,0.95))] shadow-sm">
+        <div className="flex flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+          <div className="min-w-0">
+            <div className="inline-flex items-center rounded-full border border-white/80 bg-white/80 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-600">
+              Outreach Workspace
+            </div>
+            <h1 className="mt-3 font-headline text-3xl tracking-tight text-primary sm:text-4xl">Campaigns</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
+              Manage AI call, WhatsApp, and email campaigns from one shared workspace.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-3 py-2 text-sm text-slate-700">
+              <Phone className="h-4 w-4" />
+              <span>AI Call</span>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-3 py-2 text-sm text-slate-700">
+              <MessageSquare className="h-4 w-4" />
+              <span>WhatsApp</span>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-3 py-2 text-sm text-slate-700">
+              <Mail className="h-4 w-4" />
+              <span>Email</span>
+            </div>
+          </div>
+        </div>
+      </div>
       
       <Tabs defaultValue="ai_call" className="w-full">
         <TabsList className="grid w-full grid-cols-3">

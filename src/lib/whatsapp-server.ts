@@ -82,6 +82,7 @@ export const createCampaignSchema = z.object({
   scheduledAt: z.string().datetime().optional(),
   timezone: z.string().min(1).default('Europe/Bucharest'),
   ownerId: z.string().min(1).default('system'),
+  segmentSnapshot: z.string().optional(),
 });
 
 export const createAutomationSchema = z.object({
@@ -353,7 +354,7 @@ export async function createCampaign(payload: unknown) {
     sendMode: data.sendMode,
     scheduledAt: data.scheduledAt ? Timestamp.fromDate(new Date(data.scheduledAt)) : null,
     timezone: data.timezone,
-    segmentSnapshot: null,
+    segmentSnapshot: data.segmentSnapshot ?? null,
     leadIds: validLeads.map((lead) => lead.id),
     leadCount: validLeads.length,
     queuedCount: validLeads.length,
