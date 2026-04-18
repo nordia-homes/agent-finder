@@ -278,6 +278,150 @@ export type WhatsAppScheduledJob = {
   error?: string | null;
 };
 
+export type AICallCampaignStatus =
+  | 'draft'
+  | 'scheduled'
+  | 'active'
+  | 'paused'
+  | 'completed'
+  | 'failed';
+
+export type AICallRecipientStatus =
+  | 'queued'
+  | 'scheduled'
+  | 'ringing'
+  | 'in_progress'
+  | 'ended'
+  | 'failed'
+  | 'skipped';
+
+export type AICallOutcome =
+  | 'interested'
+  | 'not_interested'
+  | 'callback_requested'
+  | 'voicemail'
+  | 'no_answer'
+  | 'busy'
+  | 'failed'
+  | 'unknown';
+
+export type AICallAssistantStatus = 'active' | 'paused' | 'draft';
+export type AICallJobStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+
+export type AICallCampaign = {
+  id: string;
+  name: string;
+  description: string;
+  channel: 'ai_call';
+  status: AICallCampaignStatus;
+  ownerId: string;
+  assistantRefId?: string | null;
+  assistantId: string;
+  phoneNumberId: string;
+  sendMode: 'manual' | 'send_now' | 'scheduled';
+  retryEnabled: boolean;
+  retryDelayMinutes: number;
+  maxAttempts: number;
+  retryOutcomes: AICallOutcome[];
+  scheduledAt?: Timestamp | null;
+  timezone: string;
+  segmentSnapshot?: string | null;
+  leadIds: string[];
+  leadCount: number;
+  queuedCount: number;
+  ringingCount: number;
+  inProgressCount: number;
+  answeredCount: number;
+  completedCount: number;
+  failedCount: number;
+  voicemailCount: number;
+  interestedCount: number;
+  notInterestedCount: number;
+  callbackRequestedCount: number;
+  noAnswerCount: number;
+  busyCount: number;
+  lastDispatchedAt?: Timestamp | null;
+  lastWebhookAt?: Timestamp | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
+export type AICallCampaignRecipient = {
+  id: string;
+  campaignId: string;
+  leadId: string;
+  phone: string;
+  status: AICallRecipientStatus;
+  outcome: AICallOutcome;
+  assistantId: string;
+  phoneNumberId: string;
+  vapiCallId?: string | null;
+  attemptCount: number;
+  failureReason?: string | null;
+  queuedAt?: Timestamp | null;
+  scheduledAt?: Timestamp | null;
+  startedAt?: Timestamp | null;
+  answeredAt?: Timestamp | null;
+  endedAt?: Timestamp | null;
+  lastEventAt?: Timestamp | null;
+  durationSeconds?: number | null;
+  endedReason?: string | null;
+  summary?: string | null;
+  transcript?: string | null;
+  messages?: Record<string, unknown>[] | null;
+  recordingUrl?: string | null;
+  stereoRecordingUrl?: string | null;
+  cost?: number | null;
+  customer?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
+  nextStepChannel?: 'whatsapp' | 'email' | 'manual' | null;
+};
+
+export type AICallAssistant = {
+  id: string;
+  name: string;
+  description: string;
+  status: AICallAssistantStatus;
+  assistantId: string;
+  phoneNumberId: string;
+  firstMessage?: string | null;
+  objective?: string | null;
+  language?: string | null;
+  voice?: string | null;
+  serverUrl?: string | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  ownerId: string;
+};
+
+export type AICallEvent = {
+  id: string;
+  type: string;
+  campaignId?: string | null;
+  recipientId?: string | null;
+  leadId?: string | null;
+  vapiCallId?: string | null;
+  eventAt: Timestamp;
+  payload: Record<string, unknown>;
+  source: 'vapi_webhook' | 'system' | 'user';
+};
+
+export type AICallScheduledJob = {
+  id: string;
+  jobType: 'campaign_dispatch' | 'recipient_retry';
+  status: AICallJobStatus;
+  campaignId?: string | null;
+  recipientId?: string | null;
+  leadId?: string | null;
+  runAt: Timestamp;
+  timezone: string;
+  payload: Record<string, unknown>;
+  lastAttemptAt?: Timestamp | null;
+  attemptCount: number;
+  error?: string | null;
+};
+
 export type NavItem = {
   href: string;
   label: string;

@@ -17,6 +17,13 @@ const serverEnvSchema = z.object({
   INFOBIP_API_KEY: optionalNonEmptyString,
   INFOBIP_WHATSAPP_SENDER: optionalNonEmptyString,
   INFOBIP_WEBHOOK_SECRET: optionalNonEmptyString,
+  VAPI_BASE_URL: optionalUrlString,
+  VAPI_API_KEY: optionalNonEmptyString,
+  VAPI_WEBHOOK_SECRET: optionalNonEmptyString,
+  VAPI_WEBHOOK_AUTH_TOKEN: optionalNonEmptyString,
+  VAPI_WEBHOOK_HMAC_SECRET: optionalNonEmptyString,
+  VAPI_DEFAULT_ASSISTANT_ID: optionalNonEmptyString,
+  VAPI_DEFAULT_PHONE_NUMBER_ID: optionalNonEmptyString,
   FIREBASE_ADMIN_PROJECT_ID: optionalNonEmptyString,
   FIREBASE_ADMIN_CLIENT_EMAIL: optionalNonEmptyString,
   FIREBASE_ADMIN_PRIVATE_KEY: optionalNonEmptyString,
@@ -51,5 +58,25 @@ export function getRequiredInfobipConfig() {
     apiKey: serverEnv.INFOBIP_API_KEY!,
     sender: serverEnv.INFOBIP_WHATSAPP_SENDER!,
     webhookSecret: serverEnv.INFOBIP_WEBHOOK_SECRET ?? '',
+  };
+}
+
+export function hasVapiConfig() {
+  return Boolean(serverEnv.VAPI_API_KEY);
+}
+
+export function getRequiredVapiConfig() {
+  if (!hasVapiConfig()) {
+    throw new Error('Missing Vapi configuration. Set VAPI_API_KEY.');
+  }
+
+  return {
+    baseUrl: serverEnv.VAPI_BASE_URL ?? 'https://api.vapi.ai',
+    apiKey: serverEnv.VAPI_API_KEY!,
+    webhookSecret: serverEnv.VAPI_WEBHOOK_SECRET ?? '',
+    webhookAuthToken: serverEnv.VAPI_WEBHOOK_AUTH_TOKEN ?? '',
+    webhookHmacSecret: serverEnv.VAPI_WEBHOOK_HMAC_SECRET ?? '',
+    defaultAssistantId: serverEnv.VAPI_DEFAULT_ASSISTANT_ID ?? '',
+    defaultPhoneNumberId: serverEnv.VAPI_DEFAULT_PHONE_NUMBER_ID ?? '',
   };
 }

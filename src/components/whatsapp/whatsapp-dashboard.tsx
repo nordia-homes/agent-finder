@@ -1,13 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useMemo, useState, type ChangeEvent } from 'react';
 import { format, formatDistanceToNow, isToday } from 'date-fns';
-import { createPortal } from 'react-dom';
 import {
   AlertCircle,
   Bot,
   CalendarClock,
-  CalendarIcon,
   CheckCheck,
   ChevronRight,
   CircleAlert,
@@ -141,6 +139,39 @@ function parseScheduledDateTime(value?: string) {
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
+function buildScheduledDateTime(dateValue: string, timeValue: string) {
+  if (!dateValue) return '';
+  return `${dateValue}T${timeValue || '09:00'}`;
+}
+
+function buildSchedulingDateOptions() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return Array.from({ length: 90 }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() + index);
+
+    return {
+      value: format(date, 'yyyy-MM-dd'),
+      label: format(date, 'dd MMM yyyy'),
+    };
+  });
+}
+
+function buildSchedulingTimeOptions() {
+  const options: Array<{ value: string; label: string }> = [];
+
+  for (let hour = 8; hour <= 20; hour += 1) {
+    for (const minutes of [0, 15, 30, 45]) {
+      const value = `${String(hour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+      options.push({ value, label: value });
+    }
+  }
+
+  return options;
+}
+
 const templateStatusStyles: Record<string, string> = {
   draft: 'bg-slate-100 text-slate-800 border-slate-200',
   submitted: 'bg-amber-100 text-amber-900 border-amber-200',
@@ -191,16 +222,13 @@ export function WhatsAppDashboard() {
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
-  const [schedulePickerOpen, setSchedulePickerOpen] = useState(false);
   const [automationDialogOpen, setAutomationDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [mediaUploading, setMediaUploading] = useState(false);
-  const scheduleTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [templateFilter, setTemplateFilter] = useState<'all' | 'approved' | 'pending' | 'rejected' | 'draft'>('all');
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'scheduled' | 'draft' | 'attention'>('all');
   const [inboxSearch, setInboxSearch] = useState('');
   const [previewLeadId, setPreviewLeadId] = useState('');
-  const [schedulePickerPosition, setSchedulePickerPosition] = useState({ top: 0, left: 0 });
   const [templateForm, setTemplateForm] = useState({
     name: '',
     language: 'en',
@@ -214,7 +242,7 @@ export function WhatsAppDashboard() {
     variables: createDefaultVariables(),
     buttons: createDefaultButtons(),
   });
-  const [campaignForm, setCampaignForm] = useState({ name: '', description: '', templateId: '', sendMode: 'send_now', scheduledAt: '', timezone: 'Europe/Bucharest', leadIds: [] as string[], search: '', city: 'all', classification: 'all', owner: 'all', minScore: '0', statuses: [] as string[] });
+  const [campaignForm, setCampaignForm] = useState({ name: '', description: '', templateId: '', sendMode: 'send_now', scheduledAt: '', timezone: 'Europe/Bucharest', leadIds: [] as string[], search: '', city: 'all', classification: 'all', statuses: [] as string[] });
   const [automationForm, setAutomationForm] = useState({ name: '', description: '', templateId: '', triggerType: 'scheduled', schedule: '0 9 * * 1', delayMinutes: '60', timezone: 'Europe/Bucharest' });
 
   const leads = data?.leads ?? [];
@@ -235,17 +263,28 @@ export function WhatsAppDashboard() {
     [campaignForm.statuses]
   );
   const scheduledDateValue = useMemo(() => parseScheduledDateTime(campaignForm.scheduledAt), [campaignForm.scheduledAt]);
-  const owners = useMemo(() => Array.from(new Set(leads.map((lead) => lead.owner_id).filter(Boolean))) as string[], [leads]);
+  const scheduledDateInputValue = useMemo(
+    () => (scheduledDateValue ? format(scheduledDateValue, 'yyyy-MM-dd') : ''),
+    [scheduledDateValue]
+  );
+  const scheduledTimeInputValue = useMemo(
+    () => (scheduledDateValue ? format(scheduledDateValue, 'HH:mm') : '09:00'),
+    [scheduledDateValue]
+  );
+  const scheduledDateDisplayValue = useMemo(
+    () => (scheduledDateValue ? format(scheduledDateValue, 'dd MMM yyyy, HH:mm') : ''),
+    [scheduledDateValue]
+  );
+  const schedulingDateOptions = useMemo(() => buildSchedulingDateOptions(), []);
+  const schedulingTimeOptions = useMemo(() => buildSchedulingTimeOptions(), []);
   const cities = useMemo(() => Array.from(new Set(leads.map((lead) => lead.city).filter(Boolean))) as string[], [leads]);
   const metrics = useMemo(() => ({ activeCampaigns: campaigns.filter((campaign) => campaign.status === 'active').length, pendingTemplates: templates.filter((template) => ['submitted', 'pending_approval'].includes(template.status)).length, delivered: campaigns.reduce((sum, campaign) => sum + safeNumber(campaign.deliveredCount), 0), seen: campaigns.reduce((sum, campaign) => sum + safeNumber(campaign.seenCount), 0), replies: campaigns.reduce((sum, campaign) => sum + safeNumber(campaign.replyCount), 0) }), [campaigns, templates]);
   const filteredAudienceLeads = useMemo(() => {
-    const minScore = Number(campaignForm.minScore || '0');
     const search = campaignForm.search.toLowerCase();
     return leads.filter((lead) => {
       const searchable = `${lead.full_name ?? ''} ${lead.company_name ?? ''} ${lead.phone ?? ''}`.toLowerCase();
-      const score = Number(lead.independent_score ?? 0);
       const statusMatches = campaignForm.statuses.length === 0 || (lead.lead_status ? campaignForm.statuses.includes(lead.lead_status) : false);
-      return (!search || searchable.includes(search)) && (campaignForm.city === 'all' || lead.city === campaignForm.city) && (campaignForm.classification === 'all' || lead.classification === campaignForm.classification) && (campaignForm.owner === 'all' || lead.owner_id === campaignForm.owner) && statusMatches && score >= minScore;
+      return (!search || searchable.includes(search)) && (campaignForm.city === 'all' || lead.city === campaignForm.city) && (campaignForm.classification === 'all' || lead.classification === campaignForm.classification) && statusMatches;
     });
   }, [campaignForm, leads]);
   const audienceStats = useMemo(() => {
@@ -276,34 +315,6 @@ export function WhatsAppDashboard() {
     return preview;
   }, [previewLead, templateForm.bodyText, templateForm.variables]);
 
-  useEffect(() => {
-    if (!schedulePickerOpen) return;
-
-    const updateSchedulePickerPosition = () => {
-      const trigger = scheduleTriggerRef.current;
-      if (!trigger) return;
-      const rect = trigger.getBoundingClientRect();
-      const pickerWidth = 320;
-      const viewportPadding = 16;
-      setSchedulePickerPosition({
-        top: rect.bottom + 8,
-        left: Math.min(
-          Math.max(viewportPadding, rect.right - pickerWidth),
-          window.innerWidth - pickerWidth - viewportPadding
-        ),
-      });
-    };
-
-    updateSchedulePickerPosition();
-    window.addEventListener('resize', updateSchedulePickerPosition);
-    window.addEventListener('scroll', updateSchedulePickerPosition, true);
-
-    return () => {
-      window.removeEventListener('resize', updateSchedulePickerPosition);
-      window.removeEventListener('scroll', updateSchedulePickerPosition, true);
-    };
-  }, [schedulePickerOpen]);
-
   function resetTemplateForm() {
     setEditingTemplateId(null);
     setTemplateForm({
@@ -330,31 +341,6 @@ export function WhatsAppDashboard() {
       preview = preview.replaceAll(variable.key, getLeadFieldValue(previewLead, variable.sourceField) || variable.sample || variable.key);
     }
     return preview;
-  }
-
-  function updateScheduledDate(date?: Date) {
-    if (!date) return;
-    const current = scheduledDateValue ?? new Date();
-    const next = new Date(current);
-    next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-    setCampaignForm((currentForm) => ({
-      ...currentForm,
-      scheduledAt: format(next, "yyyy-MM-dd'T'HH:mm"),
-    }));
-  }
-
-  function updateScheduledTime(time: string) {
-    const [hours, minutes] = time.split(':').map((value) => Number(value));
-    if (Number.isNaN(hours) || Number.isNaN(minutes)) return;
-
-    const current = scheduledDateValue ?? new Date();
-    const next = new Date(current);
-    next.setHours(hours, minutes, 0, 0);
-
-    setCampaignForm((currentForm) => ({
-      ...currentForm,
-      scheduledAt: format(next, "yyyy-MM-dd'T'HH:mm"),
-    }));
   }
 
   async function handleTemplateMediaUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -572,14 +558,12 @@ export function WhatsAppDashboard() {
           search: campaignForm.search,
           city: campaignForm.city,
           classification: campaignForm.classification,
-          owner: campaignForm.owner,
-          minScore: campaignForm.minScore,
           statuses: campaignForm.statuses,
         }),
       });
       toast({ title: 'Campaign created', description: campaignForm.sendMode === 'send_now' ? 'Campaign was created and sent immediately.' : 'Campaign was saved with the selected configuration.' });
       setCampaignDialogOpen(false);
-      setCampaignForm({ name: '', description: '', templateId: '', sendMode: 'send_now', scheduledAt: '', timezone: 'Europe/Bucharest', leadIds: [], search: '', city: 'all', classification: 'all', owner: 'all', minScore: '0', statuses: [] });
+      setCampaignForm({ name: '', description: '', templateId: '', sendMode: 'send_now', scheduledAt: '', timezone: 'Europe/Bucharest', leadIds: [], search: '', city: 'all', classification: 'all', statuses: [] });
       await refresh();
     } catch (requestError) {
       toast({ title: 'Campaign creation failed', description: requestError instanceof Error ? requestError.message : 'Unexpected error.', variant: 'destructive' });
@@ -847,29 +831,21 @@ export function WhatsAppDashboard() {
 
           <Dialog
             open={campaignDialogOpen}
-            onOpenChange={(open) => {
-              if (!open && schedulePickerOpen) {
-                return;
-              }
-              setCampaignDialogOpen(open);
-              if (!open) {
-                setSchedulePickerOpen(false);
-              }
-            }}
+            onOpenChange={setCampaignDialogOpen}
           >
             <DialogContent
               className="max-h-[92vh] max-w-5xl overflow-hidden border-[#e7e1d6] bg-[#f7f3ed] p-0 shadow-[0_32px_90px_rgba(28,24,20,0.18)]"
             >
               <div className="flex h-full max-h-[92vh] flex-col">
                 <DialogHeader className="shrink-0 border-b border-[#e7dfd2] bg-[#f4efe7] px-6 py-3">
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center justify-between gap-4 pr-12">
                     <div>
                       <DialogTitle className="text-[1.2rem] font-headline tracking-[-0.03em] text-[#1f1b18]">Create WhatsApp Campaign</DialogTitle>
                       <DialogDescription className="mt-0.5 text-[12px] leading-4 text-[#6f6458]">
                         Approved template, selected audience, clean launch.
                       </DialogDescription>
                     </div>
-                    <div className="hidden min-w-[108px] rounded-[18px] border border-[#ddd3c3] bg-[#fbf8f3] px-3 py-2 text-right md:block">
+                    <div className="hidden min-w-[96px] rounded-[18px] border border-[#ddd3c3] bg-[#fbf8f3] px-3 py-2 text-right md:block">
                       <p className="text-[10px] uppercase tracking-[0.14em] text-[#8a7d6d]">Eligible</p>
                       <p className="mt-0.5 text-[1.25rem] font-semibold text-[#1f1b18]">{audienceStats.selectedEligible}</p>
                     </div>
@@ -950,104 +926,58 @@ export function WhatsAppDashboard() {
                               </div>
                               <div className="space-y-2">
                                 <Label className="text-[#2b251f]">Scheduled at</Label>
-                                <div className="flex gap-2">
+                                {campaignForm.sendMode === 'scheduled' ? (
+                                  <div className="grid gap-2 sm:grid-cols-2">
+                                    <Select
+                                      value={scheduledDateInputValue || undefined}
+                                      onValueChange={(value) =>
+                                        setCampaignForm((current) => ({
+                                          ...current,
+                                          scheduledAt: buildScheduledDateTime(value, scheduledTimeInputValue),
+                                        }))
+                                      }
+                                    >
+                                      <SelectTrigger className="border-[#cfc0ab] bg-[#fffaf3] text-[#1f1b18]">
+                                        <SelectValue placeholder="Select date" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {schedulingDateOptions.map((option) => (
+                                          <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <Select
+                                      value={scheduledTimeInputValue || undefined}
+                                      onValueChange={(value) =>
+                                        setCampaignForm((current) => ({
+                                          ...current,
+                                          scheduledAt: buildScheduledDateTime(scheduledDateInputValue || schedulingDateOptions[0]?.value || '', value),
+                                        }))
+                                      }
+                                    >
+                                      <SelectTrigger className="border-[#cfc0ab] bg-[#fffaf3] text-[#1f1b18]">
+                                        <SelectValue placeholder="Select time" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {schedulingTimeOptions.map((option) => (
+                                          <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                ) : (
                                   <Input
+                                    value=""
                                     readOnly
-                                    value={scheduledDateValue ? format(scheduledDateValue, 'dd/MM/yyyy HH:mm') : ''}
-                                    placeholder="Date"
-                                    disabled={campaignForm.sendMode !== 'scheduled'}
+                                    disabled
+                                    placeholder="Switch to Scheduled to choose date and time"
                                     className="border-[#cfc0ab] bg-[#fffaf3] text-[#1f1b18] placeholder:text-[#7b6f60]"
                                   />
-                                  <>
-                                    <Button
-                                      ref={scheduleTriggerRef}
-                                      type="button"
-                                      variant="outline"
-                                      disabled={campaignForm.sendMode !== 'scheduled'}
-                                      className="shrink-0 border-[#cfc0ab] bg-[#fffaf3] text-[#1f1b18] hover:bg-[#f3ece2]"
-                                      onClick={() => {
-                                        if (campaignForm.sendMode !== 'scheduled') {
-                                          return;
-                                        }
-                                        setSchedulePickerOpen((current) => !current);
-                                      }}
-                                    >
-                                      <CalendarIcon className="h-4 w-4" />
-                                    </Button>
-                                    {schedulePickerOpen && typeof document !== 'undefined'
-                                      ? createPortal(
-                                      <div
-                                        className="fixed z-[80] w-[320px] rounded-[24px] border border-[#d8cbb9] bg-[#fbf7f1] p-4 shadow-[0_24px_60px_rgba(31,27,24,0.14)]"
-                                        style={{ top: schedulePickerPosition.top, left: schedulePickerPosition.left }}
-                                      >
-                                      <div className="space-y-4">
-                                        <div className="space-y-1">
-                                          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#8b7f72]">Schedule campaign</p>
-                                          <p className="text-sm text-[#62584d]">Choose the delivery date and time.</p>
-                                        </div>
-                                        <div className="grid gap-3 sm:grid-cols-2">
-                                          <div className="space-y-2">
-                                            <Label className="text-[#2b251f]">Date</Label>
-                                            <Input
-                                              type="date"
-                                              value={scheduledDateValue ? format(scheduledDateValue, 'yyyy-MM-dd') : ''}
-                                              onChange={(event) => {
-                                                const value = event.target.value;
-                                                if (!value) {
-                                                  setCampaignForm((current) => ({ ...current, scheduledAt: '' }));
-                                                  return;
-                                                }
-                                                const [year, month, day] = value.split('-').map(Number);
-                                                updateScheduledDate(new Date(year, month - 1, day));
-                                              }}
-                                              className="border-[#cfc0ab] bg-white text-[#1f1b18]"
-                                            />
-                                          </div>
-                                          <div className="space-y-2">
-                                            <Label className="text-[#2b251f]">Time</Label>
-                                            <Input
-                                              type="time"
-                                              value={scheduledDateValue ? format(scheduledDateValue, 'HH:mm') : ''}
-                                              onChange={(event) => {
-                                                updateScheduledTime(event.target.value);
-                                              }}
-                                              className="border-[#cfc0ab] bg-white text-[#1f1b18]"
-                                            />
-                                          </div>
-                                        </div>
-                                        <div className="rounded-[18px] border border-[#ddd3c3] bg-white px-4 py-3 text-sm text-[#5f5448]">
-                                          {scheduledDateValue
-                                            ? `Scheduled for ${format(scheduledDateValue, 'dd MMM yyyy, HH:mm')} (${campaignForm.timezone})`
-                                            : 'No date selected yet.'}
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            className="text-[#7a6d60] hover:bg-[#f0e7db] hover:text-[#1f1b18]"
-                                            onClick={() => {
-                                              setCampaignForm((current) => ({ ...current, scheduledAt: '' }));
-                                              setSchedulePickerOpen(false);
-                                            }}
-                                          >
-                                            Clear
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            className="bg-[#1f1b18] text-white hover:bg-[#2a2521]"
-                                            onClick={() => {
-                                              setSchedulePickerOpen(false);
-                                            }}
-                                          >
-                                            Apply
-                                          </Button>
-                                        </div>
-                                      </div>
-                                      </div>,
-                                      document.body
-                                    ) : null}
-                                  </>
-                                </div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1065,14 +995,72 @@ export function WhatsAppDashboard() {
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-5">
-                          <div className="rounded-[22px] border border-[#e5ddd1] bg-[#fdfaf5] p-4">
-                            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#8b7f72]">Refine audience</p>
-                            <div className="mt-3 grid gap-3 md:grid-cols-5">
-                              <Input value={campaignForm.search} onChange={(event) => setCampaignForm((current) => ({ ...current, search: event.target.value }))} placeholder="Search leads" />
-                              <Select value={campaignForm.city} onValueChange={(value) => setCampaignForm((current) => ({ ...current, city: value }))}><SelectTrigger><SelectValue placeholder="City" /></SelectTrigger><SelectContent><SelectItem value="all">All cities</SelectItem>{cities.map((city) => <SelectItem key={city} value={city}>{city}</SelectItem>)}</SelectContent></Select>
-                              <Select value={campaignForm.classification} onValueChange={(value) => setCampaignForm((current) => ({ ...current, classification: value }))}><SelectTrigger><SelectValue placeholder="Classification" /></SelectTrigger><SelectContent><SelectItem value="all">All classifications</SelectItem><SelectItem value="likely_independent">Likely independent</SelectItem><SelectItem value="possible_independent">Possible independent</SelectItem><SelectItem value="agency">Agency</SelectItem></SelectContent></Select>
-                              <Select value={campaignForm.owner} onValueChange={(value) => setCampaignForm((current) => ({ ...current, owner: value }))}><SelectTrigger><SelectValue placeholder="Owner" /></SelectTrigger><SelectContent><SelectItem value="all">All owners</SelectItem>{owners.map((owner) => <SelectItem key={owner} value={owner}>{owner}</SelectItem>)}</SelectContent></Select>
-                              <Input value={campaignForm.minScore} onChange={(event) => setCampaignForm((current) => ({ ...current, minScore: event.target.value }))} placeholder="Min score" />
+                          <div className="rounded-[24px] border border-[#e5ddd1] bg-[#fdfaf5] p-4">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#8b7f72]">Refine audience</p>
+                                <p className="mt-1 text-sm text-[#6f6458]">Search quickly, then narrow by city and lead type.</p>
+                              </div>
+                              {(campaignForm.search || campaignForm.city !== 'all' || campaignForm.classification !== 'all') ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    setCampaignForm((current) => ({
+                                      ...current,
+                                      search: '',
+                                      city: 'all',
+                                      classification: 'all',
+                                    }))
+                                  }
+                                  className="rounded-full text-[#7a6d60] hover:bg-[#f0e7db] hover:text-[#1f1b18]"
+                                >
+                                  Clear filters
+                                </Button>
+                              ) : null}
+                            </div>
+
+                            <div className="mt-4 grid gap-3 md:grid-cols-[1.35fr_0.8fr_0.8fr]">
+                              <div className="space-y-2">
+                                <Label className="text-[#332c25]">Search leads</Label>
+                                <Input
+                                  value={campaignForm.search}
+                                  onChange={(event) => setCampaignForm((current) => ({ ...current, search: event.target.value }))}
+                                  placeholder="Name, company, or phone"
+                                  className="border-[#d9cebf] bg-white text-[#1f1b18] placeholder:text-[#7b6f60]"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-[#332c25]">City</Label>
+                                <Select value={campaignForm.city} onValueChange={(value) => setCampaignForm((current) => ({ ...current, city: value }))}>
+                                  <SelectTrigger className="border-[#d9cebf] bg-white text-[#1f1b18]">
+                                    <SelectValue placeholder="All cities" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">All cities</SelectItem>
+                                    {cities.map((city) => (
+                                      <SelectItem key={city} value={city}>
+                                        {city}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-[#332c25]">Lead type</Label>
+                                <Select value={campaignForm.classification} onValueChange={(value) => setCampaignForm((current) => ({ ...current, classification: value }))}>
+                                  <SelectTrigger className="border-[#d9cebf] bg-white text-[#1f1b18]">
+                                    <SelectValue placeholder="All lead types" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">All lead types</SelectItem>
+                                    <SelectItem value="likely_independent">Likely independent</SelectItem>
+                                    <SelectItem value="possible_independent">Possible independent</SelectItem>
+                                    <SelectItem value="agency">Agency</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </div>
                           </div>
                           <div className="space-y-3">
@@ -1193,7 +1181,7 @@ export function WhatsAppDashboard() {
                             </p>
                             <p className="mt-1 text-muted-foreground">
                               {campaignForm.sendMode === 'scheduled' && campaignForm.scheduledAt
-                                ? `Scheduled for ${campaignForm.scheduledAt} (${campaignForm.timezone})`
+                                ? `Scheduled for ${scheduledDateDisplayValue} (${campaignForm.timezone})`
                                 : campaignForm.sendMode === 'scheduled'
                                   ? 'Choose a date and time before saving.'
                                   : 'You can still edit audience and template after saving.'}

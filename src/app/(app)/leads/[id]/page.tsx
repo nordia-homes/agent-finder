@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { LeadWhatsAppPanel } from '@/components/whatsapp/lead-whatsapp-panel';
+import { LeadAICallPanel } from '@/components/ai-calls/lead-ai-call-panel';
 
 
 const classificationStyles: Record<Lead['classification'], string> = {
@@ -262,15 +263,7 @@ export default function LeadDetailPage() {
               </Card>
             </TabsContent>
              <TabsContent value="ai-call" className="mt-6">
-              <Card>
-                <CardHeader>
-                    <CardTitle>AI Call</CardTitle>
-                    <CardDescription>Initiate and manage AI-powered calls.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground">AI Call functionality coming soon.</p>
-                </CardContent>
-              </Card>
+              <LeadAICallPanel lead={lead} />
             </TabsContent>
           </Tabs>
           
