@@ -29,6 +29,18 @@ import Link from 'next/link';
 import { LeadWhatsAppPanel } from '@/components/whatsapp/lead-whatsapp-panel';
 import { LeadAICallPanel } from '@/components/ai-calls/lead-ai-call-panel';
 import { getLeadStatusLabel, normalizeLeadStatus } from '@/lib/lead-status';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { serverTimestamp } from 'firebase/firestore';
 
 
 const classificationStyles: Record<Lead['classification'], string> = {
@@ -79,6 +91,18 @@ const DetailItem = ({
   );
 };
 
+function formatLeadDate(createdAt: Lead['created_at'] | null | undefined) {
+  if (!createdAt || typeof createdAt.toDate !== 'function') {
+    return 'Just added';
+  }
+
+  try {
+    return format(createdAt.toDate(), 'MMM d, yyyy');
+  } catch {
+    return 'Just added';
+  }
+}
+
 
 export default function LeadDetailPage() {
   const params = useParams();
@@ -91,6 +115,7 @@ export default function LeadDetailPage() {
   const [potentialDuplicates, setPotentialDuplicates] = useState<Lead[]>([]);
   const [mergedLeads, setMergedLeads] = useState<Lead[]>([]);
   const [showAssociatedLeadsDialog, setShowAssociatedLeadsDialog] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   const leadRef = useMemo(() => {
     if (!firestore || !id || !user) return null;
@@ -114,7 +139,7 @@ export default function LeadDetailPage() {
         const querySnapshot = await getDocs(q);
         const foundDuplicates = querySnapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() } as Lead))
-            .filter(l => l.id !== lead.id && l.lead_status !== 'merged');
+            .filter(l => l.id !== lead.id && l.lead_status !== 'merged' && !l.archived_at);
         
         setPotentialDuplicates(foundDuplicates);
       } catch (e) {
@@ -175,6 +200,33 @@ export default function LeadDetailPage() {
     }
   }
 
+  const handleArchive = async () => {
+    if (!firestore || !lead) return;
+
+    setIsArchiving(true);
+    try {
+      await updateDoc(doc(firestore, 'leads', lead.id), {
+        archived_at: serverTimestamp(),
+        archived_reason: 'manual_archive',
+      });
+
+      toast({
+        title: "Lead archived",
+        description: `${lead.full_name || lead.company_name} was moved out of the active leads list.`,
+      });
+      router.push('/leads');
+    } catch (e) {
+      console.error("Error archiving lead:", e);
+      toast({
+        variant: "destructive",
+        title: "Archive failed",
+        description: "Could not archive the lead. Please try again.",
+      });
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
 
   const leadName = lead?.full_name || lead?.company_name;
 
@@ -202,16 +254,20 @@ export default function LeadDetailPage() {
   }
 
   // Show a holding page if the lead has been merged
-  if (lead && normalizeLeadStatus(lead.lead_status) === 'merged') {
+  if (lead && (normalizeLeadStatus(lead.lead_status) === 'merged' || lead.archived_at)) {
     return (
         <div className="flex flex-col items-center justify-center h-full text-center p-4">
              <Card className="p-8 max-w-md w-full">
                 <CardHeader>
                     <CardTitle className="font-headline text-2xl">Lead Archived</CardTitle>
-                    <CardDescription>This lead has been archived by merging it into another lead.</CardDescription>
+                    <CardDescription>
+                      {normalizeLeadStatus(lead.lead_status) === 'merged'
+                        ? 'This lead has been archived by merging it into another lead.'
+                        : 'This lead has been archived and removed from active lead lists.'}
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {lead.merged_into ? (
+                    {normalizeLeadStatus(lead.lead_status) === 'merged' && lead.merged_into ? (
                         <Button asChild>
                             <Link href={`/leads/${lead.merged_into}`}>
                                 View Master Lead <ArrowRight className="ml-2 h-4 w-4"/>
@@ -347,6 +403,32 @@ export default function LeadDetailPage() {
                   </Button>
                 )}
 
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="w-full rounded-[22px] border border-rose-200 bg-white py-6 text-base font-semibold text-rose-700 shadow-[0_12px_26px_rgba(33,51,84,0.08)] hover:bg-rose-50 hover:text-rose-800">
+                      Archive Lead
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="rounded-[24px] border border-[#d9dfeb] bg-white">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Archive this lead?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        The lead will be removed from active lead lists, but it will stay saved in the system and can still be accessed directly.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleArchive}
+                        className="bg-rose-600 text-white hover:bg-rose-700"
+                        disabled={isArchiving}
+                      >
+                        {isArchiving ? 'Archiving...' : 'Archive lead'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
                 <div className="space-y-6">
                   <div>
                     <div className="mb-3 flex items-center justify-between">
@@ -372,7 +454,7 @@ export default function LeadDetailPage() {
                     </div>
                     <div className="grid grid-cols-1 gap-3">
                       <DetailItem label="Active Listings" value={lead.active_listings_count} icon={List} />
-                      <DetailItem label="Date Added" value={format(lead.created_at.toDate(), 'MMM d, yyyy')} icon={Calendar} />
+                      <DetailItem label="Date Added" value={formatLeadDate(lead.created_at)} icon={Calendar} />
                       <DetailItem label="Lead Status" value={getLeadStatusLabel(lead.lead_status)} icon={CheckSquare} />
                     </div>
                   </div>

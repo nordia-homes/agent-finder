@@ -21,6 +21,7 @@ export default function DashboardPage() {
   }, [firestore, user]);
 
   const { data: leads, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
+  const activeLeads = useMemo(() => (leads || []).filter((lead) => !lead.archived_at && normalizeLeadStatus(lead.lead_status) !== 'merged'), [leads]);
 
   const { todayTimestamp, tomorrowTimestamp } = useMemo(() => {
     const today = new Date();
@@ -45,12 +46,12 @@ export default function DashboardPage() {
 
   const { data: newLeadsToday, loading: newLeadsLoading } = useCollection(newLeadsTodayQuery);
   
-  const totalLeads = useMemo(() => leads?.length || 0, [leads]);
-  const likelyIndependent = useMemo(() => leads?.filter(l => l.classification === 'likely_independent').length || 0, [leads]);
-  const contacted = useMemo(() => leads?.filter((l) => normalizeLeadStatus(l.lead_status) === 'contacted').length || 0, [leads]);
-  const demosBooked = useMemo(() => leads?.filter((l) => normalizeLeadStatus(l.lead_status) === 'demo_sent').length || 0, [leads]);
-  const trialStarted = useMemo(() => leads?.filter((l) => normalizeLeadStatus(l.lead_status) === 'trial_started').length || 0, [leads]);
-  const won = useMemo(() => leads?.filter((l) => normalizeLeadStatus(l.lead_status) === 'won').length || 0, [leads]);
+  const totalLeads = useMemo(() => activeLeads.length || 0, [activeLeads]);
+  const likelyIndependent = useMemo(() => activeLeads.filter(l => l.classification === 'likely_independent').length || 0, [activeLeads]);
+  const contacted = useMemo(() => activeLeads.filter((l) => normalizeLeadStatus(l.lead_status) === 'contacted').length || 0, [activeLeads]);
+  const demosBooked = useMemo(() => activeLeads.filter((l) => normalizeLeadStatus(l.lead_status) === 'demo_sent').length || 0, [activeLeads]);
+  const trialStarted = useMemo(() => activeLeads.filter((l) => normalizeLeadStatus(l.lead_status) === 'trial_started').length || 0, [activeLeads]);
+  const won = useMemo(() => activeLeads.filter((l) => normalizeLeadStatus(l.lead_status) === 'won').length || 0, [activeLeads]);
   const contactRate = totalLeads > 0 ? Math.round((contacted / totalLeads) * 100) : 0;
   const demoRate = totalLeads > 0 ? Math.round((demosBooked / totalLeads) * 100) : 0;
   const winRate = totalLeads > 0 ? Math.round((won / totalLeads) * 100) : 0;
@@ -189,7 +190,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 items-stretch gap-8 xl:grid-cols-[minmax(0,1.45fr)_420px]">
         <div>
-          <SalesFunnelChart leads={leads || []} isLoading={isLoading} />
+          <SalesFunnelChart leads={activeLeads || []} isLoading={isLoading} />
         </div>
         <div className="h-full">
           <RecentActivity />

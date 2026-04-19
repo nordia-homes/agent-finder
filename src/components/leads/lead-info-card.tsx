@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Lead } from "@/lib/types";
-import { Mail, MessageSquare, Phone, MapPin, Sparkles } from "lucide-react";
+import { Mail, MessageSquare, Phone, MapPin, Sparkles, List } from "lucide-react";
 import { AIEnrichmentDialog } from "./ai-enrichment-dialog";
 
 export function LeadInfoCard({ lead }: { lead: Lead }) {
@@ -20,6 +20,10 @@ export function LeadInfoCard({ lead }: { lead: Lead }) {
                             <div className="flex items-center gap-2">
                                 <MapPin className="h-4 w-4" />
                                 <span>{lead.city}, {lead.county}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <List className="h-4 w-4" />
+                                <span>{lead.active_listings_count ?? 0} active listings</span>
                             </div>
                         </div>
                     </div>

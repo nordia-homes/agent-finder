@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart2, CheckSquare, FileText, Import, LayoutDashboard, Send, Settings, Users } from 'lucide-react';
+import { BarChart2, CheckSquare, FileText, Import, Inbox, LayoutDashboard, Send, Settings, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { NavItem } from '@/lib/types';
@@ -10,6 +10,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 
 const navItems: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/intake', label: 'Intake Queue', icon: Import },
   { href: '/leads', label: 'Leads', icon: Users },
   { href: '/campaigns', label: 'Campaigns', icon: Send },

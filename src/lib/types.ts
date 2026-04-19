@@ -43,6 +43,8 @@ export type Lead = {
   hasTeamWording: boolean;
   hasFranchiseOrCorporateWording: boolean;
   merged_into?: string | null;
+  archived_at?: Timestamp | null;
+  archived_reason?: string | null;
 };
 
 export type UserProfile = {
