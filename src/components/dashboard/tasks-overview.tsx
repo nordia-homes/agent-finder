@@ -50,13 +50,14 @@ export function TasksOverview() {
 
   if (loading) {
     return (
-        <Card>
+        <Card className="rounded-[30px] border border-[#d9dfeb] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(246,249,253,0.98))] shadow-[0_18px_48px_rgba(37,55,88,0.08)]">
             <CardHeader className="flex flex-row items-center justify-between">
                  <div>
-                    <CardTitle className="font-headline">My Tasks</CardTitle>
-                    <CardDescription><Skeleton className="h-4 w-24" /></CardDescription>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Execution</p>
+                    <CardTitle className="mt-2 font-headline text-slate-900">My Tasks</CardTitle>
+                    <CardDescription><Skeleton className="mt-2 h-4 w-24" /></CardDescription>
                 </div>
-                 <Button asChild variant="outline" size="sm">
+                 <Button asChild variant="outline" size="sm" className="rounded-full border-[#d9dfeb] bg-white/80">
                     <Link href="/tasks">View all</Link>
                 </Button>
             </CardHeader>
@@ -76,13 +77,14 @@ export function TasksOverview() {
   }
 
   return (
-    <Card>
+    <Card className="rounded-[30px] border border-[#d9dfeb] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(246,249,253,0.98))] shadow-[0_18px_48px_rgba(37,55,88,0.08)]">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle className="font-headline">My Tasks</CardTitle>
-          <CardDescription>{dueToday} due today, {overdue} overdue.</CardDescription>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Execution</p>
+          <CardTitle className="mt-2 font-headline text-slate-900">My Tasks</CardTitle>
+          <CardDescription className="mt-1 text-slate-500">{dueToday} due today, {overdue} overdue.</CardDescription>
         </div>
-        <Button asChild variant="outline" size="sm">
+        <Button asChild variant="outline" size="sm" className="rounded-full border-[#d9dfeb] bg-white/80 text-slate-600 hover:bg-[#f6f8fc]">
           <Link href="/tasks">View all</Link>
         </Button>
       </CardHeader>
@@ -90,17 +92,19 @@ export function TasksOverview() {
         <div className="space-y-4">
           {tasks && tasks.length > 0 ? (
             tasks.slice(0, 5).map((task) => (
-              <div key={task.id} className="flex items-center gap-4">
+              <div key={task.id} className="flex items-center gap-4 rounded-[22px] border border-[#e1e6f0] bg-white/90 px-4 py-3 shadow-[0_10px_24px_rgba(37,55,88,0.04)]">
                   <Checkbox id={`task-${task.id}`} checked={task.completed} onCheckedChange={() => handleTaskComplete(task.id, task.completed)} />
                   <div className="flex-1">
-                      <p className={cn("text-sm font-medium", task.completed && "line-through text-muted-foreground")}>{task.lead_name}</p>
-                      <p className={cn("text-sm text-muted-foreground capitalize", task.completed && "line-through")}>{task.type.replace('_', ' ')}</p>
+                      <p className={cn("text-sm font-medium text-slate-900", task.completed && "line-through text-slate-400")}>{task.lead_name}</p>
+                      <p className={cn("text-sm capitalize text-slate-500", task.completed && "line-through")}>{task.type.replace('_', ' ')}</p>
                   </div>
-                {task.is_overdue && !task.completed && <div className="text-xs font-semibold text-destructive">Overdue</div>}
+                {task.is_overdue && !task.completed && <div className="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">Overdue</div>}
               </div>
             ))
           ) : (
-            <p className="text-center text-muted-foreground py-8">No pending tasks. Great job!</p>
+            <div className="rounded-[24px] border border-dashed border-[#d7deeb] bg-[#fbfcfe] px-6 py-10 text-center text-slate-400">
+              No pending tasks. Great job!
+            </div>
           )}
         </div>
       </CardContent>
