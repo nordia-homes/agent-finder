@@ -77,61 +77,65 @@ export function EditableLeadDetail({ leadId, fieldKey, label, value, icon: Icon 
   };
 
   return (
-    <div className="bg-black/10 backdrop-blur-sm border border-white/10 rounded-lg p-3 transition-all hover:bg-black/20 group text-sm">
-        <div className="flex items-start gap-3">
-            <Icon className="h-4 w-4 text-white/60 mt-0.5 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/70">{label}</p>
-                {!isEditing ? (
-                <div className="font-medium truncate text-white flex items-center justify-between">
-                    {fieldKey === 'email' && value ? (
-                        <a href={`mailto:${value}`} className="hover:underline">{value}</a>
-                    ) : (
-                        <span>{value || '-'}</span>
-                    )}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-white/70 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                        onClick={() => setIsEditing(true)}
-                        >
-                        <Edit className="h-3 w-3" />
-                    </Button>
-                </div>
-                ) : (
-                <div className="flex items-center gap-2 mt-1">
-                    <Input
-                    type={fieldKey === 'email' ? 'email' : 'text'}
-                    value={currentValue}
-                    onChange={(e) => setCurrentValue(e.target.value)}
-                    className="h-8 bg-black/20 border-white/20 text-white"
-                    autoFocus
-                    />
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-white/70 hover:text-white flex-shrink-0"
-                        onClick={handleSave}
-                        disabled={isLoading}
-                    >
-                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-white/70 hover:text-white flex-shrink-0"
-                        onClick={() => {
-                            setIsEditing(false);
-                            setCurrentValue(value || '');
-                        }}
-                        disabled={isLoading}
-                    >
-                    <X className="h-4 w-4" />
-                    </Button>
-                </div>
-                )}
-            </div>
+    <div className="group rounded-[22px] border border-[#d8deea] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(245,248,252,0.98))] p-4 text-sm shadow-[0_10px_24px_rgba(33,51,84,0.06)] transition-all hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(33,51,84,0.10)]">
+      <div className="flex items-start gap-3">
+        <div className="rounded-2xl bg-[#eef3fb] p-2 text-[#61739a]">
+          <Icon className="h-4 w-4 flex-shrink-0" />
         </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] uppercase tracking-[0.16em] text-[#7d8aa3]">{label}</p>
+          {!isEditing ? (
+            <div className="flex items-center justify-between gap-2">
+              <div className="truncate pt-1 font-semibold text-[#1b2435]">
+                {fieldKey === 'email' && value ? (
+                  <a href={`mailto:${value}`} className="hover:text-[#44537b] hover:underline">{value}</a>
+                ) : (
+                  <span>{value || '-'}</span>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-full text-[#7d8aa3] opacity-0 transition-opacity hover:bg-[#edf2fa] hover:text-[#44537b] group-hover:opacity-100"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-2 flex items-center gap-2">
+              <Input
+                type={fieldKey === 'email' ? 'email' : 'text'}
+                value={currentValue}
+                onChange={(e) => setCurrentValue(e.target.value)}
+                className="h-9 border-[#d8deea] bg-white text-[#1b2435]"
+                autoFocus
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full text-[#61739a] hover:bg-[#edf2fa] hover:text-[#44537b]"
+                onClick={handleSave}
+                disabled={isLoading}
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full text-[#61739a] hover:bg-[#edf2fa] hover:text-[#44537b]"
+                onClick={() => {
+                  setIsEditing(false);
+                  setCurrentValue(value || '');
+                }}
+                disabled={isLoading}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -70,43 +70,43 @@ export function NotesSection({ notes, leadId, leadName }: { notes: Activity[], l
 
     return (
         <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline text-lg">Add a note</CardTitle>
+            <Card className="overflow-hidden rounded-[28px] border border-[#d8deea] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(245,248,252,0.98))] shadow-[0_18px_36px_rgba(33,51,84,0.08)]">
+                <CardHeader className="border-b border-[#e5ebf4]">
+                    <CardTitle className="font-headline text-lg text-[#172033]">Add a note</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                     <div className="space-y-4">
                         <Textarea 
                             placeholder="Write your note here..." 
-                            className="bg-background min-h-[100px]"
+                            className="min-h-[120px] border-[#d8deea] bg-white text-[#1b2435] shadow-sm"
                             value={newNote}
                             onChange={(e) => setNewNote(e.target.value)}
                          />
-                        <Button onClick={handleSaveNote}>Save Note</Button>
+                        <Button className="rounded-[18px] bg-[#536591] text-white hover:bg-[#46567b]" onClick={handleSaveNote}>Save Note</Button>
                     </div>
                 </CardContent>
             </Card>
 
             {notes.length > 0 ? (
                 <div>
-                     <h3 className="text-base font-medium mb-4 font-headline">Recent Notes</h3>
+                     <h3 className="mb-4 text-base font-medium font-headline text-[#172033]">Recent Notes</h3>
                      <Accordion type="single" collapsible className="w-full space-y-2">
                         {notes.map(note => (
-                            <AccordionItem value={note.id} key={note.id} className="bg-card border rounded-lg data-[state=open]:shadow-md">
-                                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                            <AccordionItem value={note.id} key={note.id} className="rounded-[22px] border border-[#d8deea] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(245,248,252,0.98))] px-1 data-[state=open]:shadow-[0_16px_34px_rgba(33,51,84,0.10)]">
+                                <AccordionTrigger className="px-4 py-4 hover:no-underline">
                                     <div className="flex items-center gap-3 text-left">
                                         <Avatar className="h-7 w-7">
                                             <AvatarImage src={note.user_avatar || ''} alt={note.user_name} />
                                             <AvatarFallback>{note.user_name.charAt(0)}</AvatarFallback>
                                         </Avatar>
                                         <div>
-                                            <p className="text-sm font-medium">Note by {note.user_name}</p>
-                                             <p className="text-xs text-muted-foreground">{formatDistanceToNow(note.timestamp.toDate(), { addSuffix: true })}</p>
+                                            <p className="text-sm font-medium text-[#172033]">Note by {note.user_name}</p>
+                                             <p className="text-xs text-[#7c89a1]">{formatDistanceToNow(note.timestamp.toDate(), { addSuffix: true })}</p>
                                         </div>
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="px-4 pb-4">
-                                    <div className="prose prose-sm max-w-none text-foreground/80 dark:prose-invert">
+                                    <div className="prose prose-sm max-w-none text-[#465670]">
                                      {note.description}
                                     </div>
                                 </AccordionContent>
@@ -115,8 +115,8 @@ export function NotesSection({ notes, leadId, leadName }: { notes: Activity[], l
                     </Accordion>
                 </div>
             ): (
-                 <Card className="mt-6">
-                    <CardContent className="pt-6 text-center text-muted-foreground">
+                 <Card className="mt-6 rounded-[24px] border border-dashed border-[#d8deea] bg-white/70">
+                    <CardContent className="pt-6 text-center text-[#7c89a1]">
                         <p>No notes for this lead yet.</p>
                     </CardContent>
                 </Card>

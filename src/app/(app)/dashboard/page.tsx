@@ -10,6 +10,7 @@ import { WelcomeBanner } from '@/components/dashboard/welcome-banner';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import { collection, query, where, Timestamp } from 'firebase/firestore';
 import type { Lead } from '@/lib/types';
+import { normalizeLeadStatus } from '@/lib/lead-status';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
@@ -47,8 +48,8 @@ export default function DashboardPage() {
   
   const totalLeads = useMemo(() => leads?.length || 0, [leads]);
   const likelyIndependent = useMemo(() => leads?.filter(l => l.classification === 'likely_independent').length || 0, [leads]);
-  const contacted = useMemo(() => leads?.filter(l => l.lead_status === 'contacted').length || 0, [leads]);
-  const demosBooked = useMemo(() => leads?.filter(l => l.lead_status === 'demo_booked').length || 0, [leads]);
+  const contacted = useMemo(() => leads?.filter((l) => normalizeLeadStatus(l.lead_status) === 'contacted').length || 0, [leads]);
+  const demosBooked = useMemo(() => leads?.filter((l) => normalizeLeadStatus(l.lead_status) === 'demo_sent').length || 0, [leads]);
 
   const isLoading = userLoading || leadsLoading || newLeadsLoading;
 
@@ -80,7 +81,7 @@ export default function DashboardPage() {
           icon={<Hand className="h-5 w-5" />}
         />
         <KpiCard
-          title="Demos Booked"
+          title="Demo Sent"
           value={isLoading ? '...' : demosBooked.toString()}
           icon={<BarChart className="h-5 w-5" />}
         />

@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { LeadWhatsAppPanel } from '@/components/whatsapp/lead-whatsapp-panel';
 import { LeadAICallPanel } from '@/components/ai-calls/lead-ai-call-panel';
+import { getLeadStatusLabel, normalizeLeadStatus } from '@/lib/lead-status';
 
 
 const classificationStyles: Record<Lead['classification'], string> = {
@@ -36,17 +37,47 @@ const classificationStyles: Record<Lead['classification'], string> = {
   agency: 'bg-red-400/10 text-red-300 border-red-400/20',
 };
 
-const DetailItem = ({ label, value, icon: Icon }: { label: string; value: React.ReactNode, icon: React.ElementType }) => (
-    <div className="bg-black/10 backdrop-blur-sm border border-white/10 rounded-lg p-3 transition-all hover:bg-black/20 group text-sm">
+const DetailItem = ({
+  label,
+  value,
+  icon: Icon,
+  href,
+}: {
+  label: string;
+  value: React.ReactNode;
+  icon: React.ElementType;
+  href?: string;
+}) => {
+  const content = (
+    <div className="rounded-[22px] border border-[#d8deea] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(245,248,252,0.98))] p-4 text-sm shadow-[0_10px_24px_rgba(33,51,84,0.06)] transition-all hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(33,51,84,0.10)]">
+      <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-            <Icon className="h-4 w-4 text-white/60 mt-0.5 flex-shrink-0" />
-            <div>
-                <p className="text-xs text-white/70">{label}</p>
-                <div className="font-medium truncate text-white">{value || '-'}</div>
-            </div>
+          <div className="rounded-2xl bg-[#eef3fb] p-2 text-[#61739a]">
+            <Icon className="h-4 w-4 flex-shrink-0" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-[#7d8aa3]">{label}</p>
+            <div className="truncate pt-1 font-semibold text-[#1b2435]">{value || '-'}</div>
+          </div>
         </div>
+        {href ? <ArrowRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#8a98b5]" /> : null}
+      </div>
     </div>
-);
+  );
+
+  if (!href) return content;
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block rounded-[22px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#94a3c3] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+    >
+      {content}
+    </a>
+  );
+};
 
 
 export default function LeadDetailPage() {
@@ -171,7 +202,7 @@ export default function LeadDetailPage() {
   }
 
   // Show a holding page if the lead has been merged
-  if (lead && lead.lead_status === 'merged') {
+  if (lead && normalizeLeadStatus(lead.lead_status) === 'merged') {
     return (
         <div className="flex flex-col items-center justify-center h-full text-center p-4">
              <Card className="p-8 max-w-md w-full">
@@ -268,10 +299,10 @@ export default function LeadDetailPage() {
           </Tabs>
           
           <Tabs defaultValue="notes" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-muted/50">
-              <TabsTrigger value="notes"><FileText className="mr-2 h-4 w-4"/>Notes</TabsTrigger>
-              <TabsTrigger value="activity"><History className="mr-2 h-4 w-4"/>Activity</TabsTrigger>
-              <TabsTrigger value="tasks"><CheckSquare className="mr-2 h-4 w-4"/>Tasks</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 rounded-[22px] border border-[#d8deea] bg-[linear-gradient(180deg,_rgba(255,255,255,0.92),_rgba(244,247,252,0.92))] p-1 shadow-sm">
+              <TabsTrigger value="notes" className="rounded-[16px] data-[state=active]:bg-white data-[state=active]:text-[#172033] data-[state=active]:shadow-sm"><FileText className="mr-2 h-4 w-4"/>Notes</TabsTrigger>
+              <TabsTrigger value="activity" className="rounded-[16px] data-[state=active]:bg-white data-[state=active]:text-[#172033] data-[state=active]:shadow-sm"><History className="mr-2 h-4 w-4"/>Activity</TabsTrigger>
+              <TabsTrigger value="tasks" className="rounded-[16px] data-[state=active]:bg-white data-[state=active]:text-[#172033] data-[state=active]:shadow-sm"><CheckSquare className="mr-2 h-4 w-4"/>Tasks</TabsTrigger>
             </TabsList>
             <TabsContent value="notes" className="mt-6">
               <NotesSection notes={leadNotes} leadId={id} leadName={lead.full_name || lead.company_name} />
@@ -287,45 +318,75 @@ export default function LeadDetailPage() {
         </div>
 
         <div className="lg:col-span-1 space-y-6">
-          <Card className="bg-gradient-to-br from-primary/90 to-primary text-primary-foreground overflow-hidden">
-            <CardContent className="p-6 relative">
-              <div className="absolute inset-0 bg-black/20 mix-blend-multiply"></div>
-              <div className="relative z-10 space-y-6">
-                <div>
-                  <div className="flex justify-between items-start">
-                      <div>
-                          <CardTitle className="text-white font-headline">Independent Score</CardTitle>
-                          <CardDescription className="text-white/80">Overall lead quality rating</CardDescription>
-                      </div>
-                      <AIExplanationDialog lead={lead} />
+          <Card className="overflow-hidden border-[#d6ddeb] bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.98),_rgba(255,255,255,0.7)_28%,_transparent_54%),linear-gradient(160deg,_#f7f4ee_0%,_#f4f7fb_48%,_#edf2f8_100%)] shadow-[0_24px_60px_rgba(34,50,82,0.12)]">
+            <CardContent className="p-6">
+              <div className="space-y-6">
+                <div className="rounded-[28px] border border-white/70 bg-[linear-gradient(135deg,_rgba(83,100,145,0.96),_rgba(66,79,119,0.92))] p-6 text-white shadow-[0_20px_40px_rgba(49,66,110,0.28)]">
+                  <div className="flex justify-between items-start gap-4">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-white/70">Lead Score</p>
+                      <CardTitle className="mt-2 font-headline text-3xl text-white">Independent Score</CardTitle>
+                      <CardDescription className="mt-1 text-white/75">Overall lead quality rating</CardDescription>
+                    </div>
+                    <AIExplanationDialog lead={lead} />
                   </div>
-                </div>
-                
-                <div className="space-y-3">
-                    <div className={cn("text-4xl font-bold", scoreColor)}>{lead.independent_score}<span className="text-2xl text-white/70">/100</span></div>
-                    <Progress value={lead.independent_score} className={cn("h-2 bg-white/20", progressColorClass)} />
-                    <Badge variant="outline" className={cn(classificationStyles[lead.classification], 'capitalize font-medium w-full justify-center py-1.5 text-sm')}>
-                        {lead.classification.replace('_', ' ')}
+
+                  <div className="mt-6 space-y-4">
+                    <div className={cn("text-5xl font-bold tracking-tight", scoreColor)}>{lead.independent_score}<span className="text-2xl text-white/60">/100</span></div>
+                    <Progress value={lead.independent_score} className={cn("h-2.5 bg-white/15", progressColorClass)} />
+                    <Badge variant="outline" className={cn(classificationStyles[lead.classification], 'w-full justify-center rounded-full border-white/10 py-2 text-sm font-medium capitalize')}>
+                      {lead.classification.replace('_', ' ')}
                     </Badge>
+                  </div>
                 </div>
 
                 {hasAssociatedLeads && (
-                    <Button variant="secondary" className="w-full bg-amber-500 hover:bg-amber-600 text-black" onClick={() => setShowAssociatedLeadsDialog(true)}>
-                        <LinkIcon className="mr-2 h-4 w-4" />
-                        Associated Leads ({potentialDuplicates.length + mergedLeads.length})
-                    </Button>
+                  <Button variant="secondary" className="w-full rounded-[22px] border border-amber-200 bg-[linear-gradient(180deg,_#ffb11b,_#f59d0c)] py-6 text-base font-semibold text-[#24180b] shadow-[0_16px_30px_rgba(245,157,12,0.22)] hover:brightness-105" onClick={() => setShowAssociatedLeadsDialog(true)}>
+                    <LinkIcon className="mr-2 h-4 w-4" />
+                    Associated Leads ({potentialDuplicates.length + mergedLeads.length})
+                  </Button>
                 )}
 
-                <Separator className="bg-white/20" />
+                <div className="space-y-6">
+                  <div>
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7d8aa3]">Profile</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3">
+                      <DetailItem label="Company" value={lead.company_name} icon={Briefcase} />
+                      <DetailItem
+                        label="Lead Source"
+                        value={lead.source}
+                        icon={Database}
+                        href={lead.source_url || undefined}
+                      />
+                      <EditableLeadDetail leadId={id} fieldKey="phone" label="Phone" value={lead.phone} icon={Phone} />
+                      <DetailItem label="Website" value={lead.website ? <a href={lead.website} target="_blank" rel="noopener noreferrer" className="hover:text-[#44537b] hover:underline">{lead.website}</a> : '-'} icon={Globe} />
+                      <EditableLeadDetail leadId={id} fieldKey="email" label="Email" value={lead.email} icon={AtSign} />
+                    </div>
+                  </div>
 
-                <div className="grid grid-cols-1 gap-3">
-                    <DetailItem label="Company" value={lead.company_name} icon={Briefcase} />
-                    <DetailItem label="Website" value={lead.website ? <a href={lead.website} target="_blank" rel="noopener noreferrer" className="hover:underline">{lead.website}</a> : '-'} icon={Globe} />
-                    <EditableLeadDetail leadId={id} fieldKey="email" label="Email" value={lead.email} icon={AtSign} />
-                    <EditableLeadDetail leadId={id} fieldKey="phone" label="Phone" value={lead.phone} icon={Phone} />
-                    <DetailItem label="Lead Source" value={lead.source} icon={Database} />
-                    <DetailItem label="Active Listings" value={lead.active_listings_count} icon={List} />
-                    <DetailItem label="Date Added" value={format(lead.created_at.toDate(), 'MMM d, yyyy')} icon={Calendar} />
+                  <div>
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7d8aa3]">Lead Context</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3">
+                      <DetailItem label="Active Listings" value={lead.active_listings_count} icon={List} />
+                      <DetailItem label="Date Added" value={format(lead.created_at.toDate(), 'MMM d, yyyy')} icon={Calendar} />
+                      <DetailItem label="Lead Status" value={getLeadStatusLabel(lead.lead_status)} icon={CheckSquare} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7d8aa3]">CRM Signals</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3">
+                      <DetailItem label="Uses Another CRM" value={lead.uses_other_crm == null ? '-' : lead.uses_other_crm ? 'Yes' : 'No'} icon={Database} />
+                      <DetailItem label="Current CRM" value={lead.other_crm_name || '-'} icon={Briefcase} />
+                      <DetailItem label="Demo Accepted On WhatsApp" value={lead.accepted_demo_on_whatsapp == null ? '-' : lead.accepted_demo_on_whatsapp ? 'Yes' : 'No'} icon={MessageSquare} />
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>

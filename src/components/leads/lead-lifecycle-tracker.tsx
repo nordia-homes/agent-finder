@@ -5,6 +5,12 @@ import { Check } from 'lucide-react';
 import type { Lead } from '@/lib/types';
 import React, { useState } from 'react';
 import {
+  LEAD_STATUS_DROPDOWN_STATUSES,
+  LEAD_STATUS_LABELS,
+  PIPELINE_LEAD_STATUSES,
+  normalizeLeadStatus,
+} from '@/lib/lead-status';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -18,33 +24,19 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const STAGES = [
-    { id: 'new', label: 'New', status: 'new' as const },
-    { id: 'contacted', label: 'Contacted', status: 'contacted' as const },
-    { id: 'qualified', label: 'Qualified', status: 'qualified' as const },
-    { id: 'demo_booked', label: 'Demo Booked', status: 'demo_booked' as const },
-    { id: 'closed_won', label: 'Won', status: 'closed_won' as const },
-];
+const STAGES = PIPELINE_LEAD_STATUSES.map((status) => ({
+  id: status,
+  label: LEAD_STATUS_LABELS[status],
+  status,
+}));
 
-const LOST_STAGES = [
-    { id: 'closed_lost', label: 'Lost', status: 'closed_lost' as const },
-    { id: 'not_relevant', label: 'Not Relevant', status: 'not_relevant' as const },
-];
-
-
-const STATUS_TO_STAGE_MAP: Record<Lead['lead_status'], string> = {
-  new: 'new',
-  reviewed: 'new',
-  contacted: 'contacted',
-  replied: 'contacted',
-  qualified: 'qualified',
-  demo_booked: 'demo_booked',
-  closed_won: 'closed_won',
-  closed_lost: 'lost',
-  not_relevant: 'lost',
-  merged: 'lost',
-};
+const DROPDOWN_STAGES = LEAD_STATUS_DROPDOWN_STATUSES.map((status) => ({
+  id: status,
+  label: LEAD_STATUS_LABELS[status],
+  status,
+}));
 
 const StageButton = React.forwardRef<
   HTMLButtonElement,
@@ -65,10 +57,9 @@ export function LeadLifecycleTracker({ lead: initialLead }: { lead: Lead }) {
     const { toast } = useToast();
     const firestore = useFirestore();
 
-    const currentStageId = STATUS_TO_STAGE_MAP[lead.lead_status];
+    const currentStageId = normalizeLeadStatus(lead.lead_status);
     const currentStageIndex = STAGES.findIndex(s => s.id === currentStageId);
-    
-    const isLostOrNotRelevant = currentStageId === 'lost';
+    const isDropdownStatus = DROPDOWN_STAGES.some((stage) => stage.status === currentStageId);
 
     const handleStageChangeConfirm = async () => {
         if (pendingStatus && firestore) {
@@ -95,9 +86,9 @@ export function LeadLifecycleTracker({ lead: initialLead }: { lead: Lead }) {
     
     const getStageLabel = (status: Lead['lead_status'] | null) => {
         if (!status) return '';
-        const allStages = [...STAGES, ...LOST_STAGES];
+        const allStages = [...STAGES, ...DROPDOWN_STAGES];
         const stage = allStages.find(s => s.status === status);
-        return stage ? stage.label : status.replace('_', ' ');
+        return stage ? stage.label : LEAD_STATUS_LABELS[normalizeLeadStatus(status)];
     }
 
     const renderStageButton = (stage: { id: string; label: string; status: Lead['lead_status'] }, isCompleted: boolean, isLostButton = false) => {
@@ -141,21 +132,19 @@ export function LeadLifecycleTracker({ lead: initialLead }: { lead: Lead }) {
                         </React.Fragment>
                     );
                 })}
-                {isLostOrNotRelevant ? (
-                    <>
-                        <div className="h-0.5 w-4 flex-shrink-0 rounded-full bg-destructive" />
-                        <div
-                            className='flex h-8 flex-1 items-center justify-center rounded-md bg-destructive px-3 text-xs font-medium text-destructive-foreground'
-                        >
-                            <span>{lead.lead_status === 'closed_lost' ? 'Lost' : 'Not Relevant'}</span>
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <div className="h-0.5 w-4 flex-shrink-0 rounded-full bg-border" />
-                        {LOST_STAGES.map(stage => renderStageButton(stage, false, true))}
-                    </>
-                )}
+                <div className="h-0.5 w-4 flex-shrink-0 rounded-full bg-border" />
+                <Select value={isDropdownStatus ? currentStageId : undefined} onValueChange={(value) => setPendingStatus(value as Lead['lead_status'])}>
+                    <SelectTrigger className={cn("h-8 w-[170px] text-xs", isDropdownStatus ? "border-amber-300 bg-amber-50 text-amber-900" : "")}>
+                        <SelectValue placeholder="Outcome" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {DROPDOWN_STAGES.map((stage) => (
+                            <SelectItem key={stage.id} value={stage.status}>
+                                {stage.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             <AlertDialogContent>

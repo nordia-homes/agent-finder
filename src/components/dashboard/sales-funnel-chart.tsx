@@ -5,6 +5,7 @@ import { Bar, BarChart, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis, C
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '../ui/skeleton';
 import type { Lead } from '@/lib/types';
+import { normalizeLeadStatus } from '@/lib/lead-status';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -34,32 +35,33 @@ export function SalesFunnelChart({ leads, isLoading }: SalesFunnelChartProps) {
     const statusCounts = {
       total: leads.length,
       contacted: 0,
-      replied: 0,
-      demo_booked: 0,
-      closed_won: 0,
+      demo_sent: 0,
+      trial_started: 0,
+      won: 0,
     };
 
     leads.forEach(lead => {
-        if (lead.lead_status === 'contacted' || lead.lead_status === 'replied' || lead.lead_status === 'demo_booked' || lead.lead_status === 'closed_won') {
+        const status = normalizeLeadStatus(lead.lead_status);
+        if (['contacted', 'demo_sent', 'trial_waiting', 'trial_started', 'won'].includes(status)) {
             statusCounts.contacted++;
         }
-        if (lead.lead_status === 'replied' || lead.lead_status === 'demo_booked' || lead.lead_status === 'closed_won') {
-            statusCounts.replied++;
+        if (['demo_sent', 'trial_waiting', 'trial_started', 'won'].includes(status)) {
+            statusCounts.demo_sent++;
         }
-        if (lead.lead_status === 'demo_booked' || lead.lead_status === 'closed_won') {
-            statusCounts.demo_booked++;
+        if (['trial_started', 'won'].includes(status)) {
+            statusCounts.trial_started++;
         }
-        if (lead.lead_status === 'closed_won') {
-            statusCounts.closed_won++;
+        if (status === 'won') {
+            statusCounts.won++;
         }
     });
 
     return [
       { name: 'Total Leads', value: statusCounts.total, fill: 'hsl(var(--chart-1))' },
       { name: 'Contacted', value: statusCounts.contacted, fill: 'hsl(var(--chart-2))' },
-      { name: 'Replied', value: statusCounts.replied, fill: 'hsl(var(--chart-3))' },
-      { name: 'Demo Booked', value: statusCounts.demo_booked, fill: 'hsl(var(--chart-4))' },
-      { name: 'Won', value: statusCounts.closed_won, fill: 'hsl(var(--chart-5))' },
+      { name: 'Demo Sent', value: statusCounts.demo_sent, fill: 'hsl(var(--chart-3))' },
+      { name: 'Trial Started', value: statusCounts.trial_started, fill: 'hsl(var(--chart-4))' },
+      { name: 'Won', value: statusCounts.won, fill: 'hsl(var(--chart-5))' },
     ];
   }, [leads]);
   

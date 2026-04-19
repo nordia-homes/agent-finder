@@ -11,24 +11,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import {
+  LEAD_STATUS_BADGE_STYLES,
+  getLeadStatusLabel,
+  normalizeLeadStatus,
+} from '@/lib/lead-status';
 
 const classificationStyles: Record<Lead['classification'], string> = {
   likely_independent: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200',
   possible_independent: 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200',
   agency: 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200',
-};
-
-const leadStatusStyles: Record<Lead['lead_status'], string> = {
-  new: 'bg-blue-100 text-blue-800',
-  reviewed: 'bg-gray-100 text-gray-800',
-  qualified: 'bg-sky-100 text-sky-800',
-  contacted: 'bg-purple-100 text-purple-800',
-  replied: 'bg-indigo-100 text-indigo-800',
-  demo_booked: 'bg-teal-100 text-teal-800',
-  closed_won: 'bg-green-100 text-green-800',
-  closed_lost: 'bg-red-100 text-red-800',
-  not_relevant: 'bg-stone-100 text-stone-800',
-  merged: 'bg-zinc-100 text-zinc-800',
 };
 
 export const columns: ColumnDef<Lead>[] = [
@@ -111,11 +103,14 @@ export const columns: ColumnDef<Lead>[] = [
   {
     accessorKey: 'lead_status',
     header: 'Status',
-    cell: ({ row }) => (
-      <Badge variant="secondary" className={cn(leadStatusStyles[row.original.lead_status], 'capitalize font-medium')}>
-        {row.original.lead_status.replace('_', ' ')}
-      </Badge>
-    ),
+    cell: ({ row }) => {
+      const normalizedStatus = normalizeLeadStatus(row.original.lead_status);
+      return (
+        <Badge variant="secondary" className={cn(LEAD_STATUS_BADGE_STYLES[normalizedStatus], 'font-medium')}>
+          {getLeadStatusLabel(normalizedStatus)}
+        </Badge>
+      );
+    },
   },
   {
     accessorKey: 'city',

@@ -28,6 +28,11 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useWhatsAppDashboard } from '@/hooks/use-whatsapp-dashboard';
 import { cn } from '@/lib/utils';
+import {
+  LEAD_STATUS_LABELS,
+  LEAD_STATUS_OPTIONS as CANONICAL_LEAD_STATUS_OPTIONS,
+  normalizeLeadStatus,
+} from '@/lib/lead-status';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,17 +87,10 @@ const MAX_TEMPLATE_BUTTONS = 3;
 const HEADER_TEXT_MAX_LENGTH = 60;
 const FOOTER_TEXT_MAX_LENGTH = 60;
 const BUTTON_TEXT_MAX_LENGTH = 25;
-const LEAD_STATUS_OPTIONS = [
-  { value: 'new', label: 'Nou' },
-  { value: 'reviewed', label: 'Reviewed' },
-  { value: 'qualified', label: 'Qualified' },
-  { value: 'contacted', label: 'Contactat' },
-  { value: 'replied', label: 'A raspuns' },
-  { value: 'demo_booked', label: 'Demo booked' },
-  { value: 'closed_won', label: 'Closed won' },
-  { value: 'closed_lost', label: 'Closed lost' },
-  { value: 'not_relevant', label: 'Not relevant' },
-] as const;
+const LEAD_STATUS_OPTIONS = CANONICAL_LEAD_STATUS_OPTIONS.map((status) => ({
+  value: status,
+  label: LEAD_STATUS_LABELS[status],
+})) as Array<{ value: string; label: string }>;
 
 function extractPlaceholderIndexes(bodyText: string) {
   const matches = bodyText.match(/{{\d+}}/g) ?? [];
@@ -243,7 +241,18 @@ export function WhatsAppDashboard() {
     buttons: createDefaultButtons(),
   });
   const [campaignForm, setCampaignForm] = useState({ name: '', description: '', templateId: '', sendMode: 'send_now', scheduledAt: '', timezone: 'Europe/Bucharest', leadIds: [] as string[], search: '', city: 'all', classification: 'all', statuses: [] as string[] });
-  const [automationForm, setAutomationForm] = useState({ name: '', description: '', templateId: '', triggerType: 'scheduled', schedule: '0 9 * * 1', delayMinutes: '60', timezone: 'Europe/Bucharest' });
+  const [automationForm, setAutomationForm] = useState({
+    name: '',
+    description: '',
+    templateId: '',
+    triggerType: 'scheduled',
+    schedule: '0 9 * * 1',
+    delayMinutes: '60',
+    timezone: 'Europe/Bucharest',
+    fromStatus: 'contacted',
+    toStatus: 'demo_sent',
+    requireAcceptedDemoOnWhatsApp: true,
+  });
 
   const leads = data?.leads ?? [];
   const templates = data?.templates ?? [];
@@ -283,7 +292,8 @@ export function WhatsAppDashboard() {
     const search = campaignForm.search.toLowerCase();
     return leads.filter((lead) => {
       const searchable = `${lead.full_name ?? ''} ${lead.company_name ?? ''} ${lead.phone ?? ''}`.toLowerCase();
-      const statusMatches = campaignForm.statuses.length === 0 || (lead.lead_status ? campaignForm.statuses.includes(lead.lead_status) : false);
+      const normalizedStatus = normalizeLeadStatus(lead.lead_status);
+      const statusMatches = campaignForm.statuses.length === 0 || campaignForm.statuses.includes(normalizedStatus);
       return (!search || searchable.includes(search)) && (campaignForm.city === 'all' || lead.city === campaignForm.city) && (campaignForm.classification === 'all' || lead.classification === campaignForm.classification) && statusMatches;
     });
   }, [campaignForm, leads]);
@@ -291,7 +301,7 @@ export function WhatsAppDashboard() {
     const selectedLeads = leads.filter((lead) => campaignForm.leadIds.includes(lead.id));
     const eligibleVisible = filteredAudienceLeads.filter((lead) => Boolean(lead.phone));
     const selectedEligible = selectedLeads.filter((lead) => Boolean(lead.phone));
-    const selectedMissingStatus = selectedLeads.filter((lead) => campaignForm.statuses.length > 0 && (!lead.lead_status || !campaignForm.statuses.includes(lead.lead_status))).length;
+    const selectedMissingStatus = selectedLeads.filter((lead) => campaignForm.statuses.length > 0 && !campaignForm.statuses.includes(normalizeLeadStatus(lead.lead_status))).length;
     return { totalVisible: filteredAudienceLeads.length, eligibleVisible: eligibleVisible.length, selected: selectedLeads.length, selectedEligible: selectedEligible.length, selectedMissingPhone: selectedLeads.length - selectedEligible.length, selectedOutsideStatus: selectedMissingStatus };
   }, [campaignForm.leadIds, filteredAudienceLeads, leads]);
   const filteredTemplates = useMemo(() => templateFilter === 'all' ? templates : templateFilter === 'pending' ? templates.filter((template) => ['submitted', 'pending_approval'].includes(template.status)) : templates.filter((template) => template.status === templateFilter), [templateFilter, templates]);
@@ -574,10 +584,42 @@ export function WhatsAppDashboard() {
   async function handleCreateAutomation() {
     setSubmitting(true);
     try {
-      await requestJson('POST', '/api/whatsapp/automations', { ...automationForm, delayMinutes: Number(automationForm.delayMinutes) });
-      toast({ title: 'Automation created', description: 'Automation was saved and is ready to be connected to the dispatcher.' });
+      await requestJson('POST', '/api/whatsapp/automations', {
+        name: automationForm.name,
+        description: automationForm.description,
+        templateId: automationForm.templateId,
+        triggerType: automationForm.triggerType,
+        schedule: automationForm.schedule,
+        delayMinutes: Number(automationForm.delayMinutes),
+        timezone: automationForm.timezone,
+        triggerConfig:
+          automationForm.triggerType === 'lead_status_changed'
+            ? {
+                fromStatuses: [automationForm.fromStatus],
+                toStatuses: [automationForm.toStatus],
+              }
+            : {},
+        filters:
+          automationForm.triggerType === 'lead_status_changed'
+            ? {
+                requireAcceptedDemoOnWhatsApp: automationForm.requireAcceptedDemoOnWhatsApp,
+              }
+            : {},
+      });
+      toast({ title: 'Automation created', description: 'Automation was saved and will trigger automatically when matching lead statuses change.' });
       setAutomationDialogOpen(false);
-      setAutomationForm({ name: '', description: '', templateId: '', triggerType: 'scheduled', schedule: '0 9 * * 1', delayMinutes: '60', timezone: 'Europe/Bucharest' });
+      setAutomationForm({
+        name: '',
+        description: '',
+        templateId: '',
+        triggerType: 'scheduled',
+        schedule: '0 9 * * 1',
+        delayMinutes: '60',
+        timezone: 'Europe/Bucharest',
+        fromStatus: 'contacted',
+        toStatus: 'demo_sent',
+        requireAcceptedDemoOnWhatsApp: true,
+      });
       await refresh();
     } catch (requestError) {
       toast({ title: 'Automation creation failed', description: requestError instanceof Error ? requestError.message : 'Unexpected error.', variant: 'destructive' });
@@ -729,8 +771,34 @@ export function WhatsAppDashboard() {
                 <div className="space-y-2"><Label>Name</Label><Input value={automationForm.name} onChange={(event) => setAutomationForm((current) => ({ ...current, name: event.target.value }))} placeholder="No reply follow-up" /></div>
                 <div className="space-y-2"><Label>Description</Label><Textarea rows={3} value={automationForm.description} onChange={(event) => setAutomationForm((current) => ({ ...current, description: event.target.value }))} placeholder="If the lead does not reply within 48h, queue the approved reminder template." /></div>
                 <div className="space-y-2"><Label>Template</Label><Select value={automationForm.templateId} onValueChange={(value) => setAutomationForm((current) => ({ ...current, templateId: value }))}><SelectTrigger><SelectValue placeholder="Choose a template" /></SelectTrigger><SelectContent>{templates.map((template) => <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>)}</SelectContent></Select></div>
-                <div className="grid gap-4 md:grid-cols-2"><div className="space-y-2"><Label>Trigger type</Label><Select value={automationForm.triggerType} onValueChange={(value) => setAutomationForm((current) => ({ ...current, triggerType: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="scheduled">Scheduled</SelectItem><SelectItem value="reply_missing">No reply</SelectItem><SelectItem value="lead_status_changed">Lead status changed</SelectItem><SelectItem value="demo_booked">Demo booked</SelectItem></SelectContent></Select></div><div className="space-y-2"><Label>Delay minutes</Label><Input value={automationForm.delayMinutes} onChange={(event) => setAutomationForm((current) => ({ ...current, delayMinutes: event.target.value }))} /></div></div>
+                <div className="grid gap-4 md:grid-cols-2"><div className="space-y-2"><Label>Trigger type</Label><Select value={automationForm.triggerType} onValueChange={(value) => setAutomationForm((current) => ({ ...current, triggerType: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="scheduled">Scheduled</SelectItem><SelectItem value="reply_missing">No reply</SelectItem><SelectItem value="lead_status_changed">Lead status changed</SelectItem><SelectItem value="demo_sent">Demo sent</SelectItem></SelectContent></Select></div><div className="space-y-2"><Label>Delay minutes</Label><Input value={automationForm.delayMinutes} onChange={(event) => setAutomationForm((current) => ({ ...current, delayMinutes: event.target.value }))} /></div></div>
                 <div className="space-y-2"><Label>Schedule expression</Label><Input value={automationForm.schedule} onChange={(event) => setAutomationForm((current) => ({ ...current, schedule: event.target.value }))} placeholder="0 9 * * 1" /></div>
+                {automationForm.triggerType === 'lead_status_changed' ? (
+                  <>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>From status</Label>
+                        <Select value={automationForm.fromStatus} onValueChange={(value) => setAutomationForm((current) => ({ ...current, fromStatus: value }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{LEAD_STATUS_OPTIONS.map((status) => <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>To status</Label>
+                        <Select value={automationForm.toStatus} onValueChange={(value) => setAutomationForm((current) => ({ ...current, toStatus: value }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{LEAD_STATUS_OPTIONS.map((status) => <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-3 rounded-xl border p-4 text-sm">
+                      <label className="flex items-center gap-3">
+                        <Checkbox checked={automationForm.requireAcceptedDemoOnWhatsApp} onCheckedChange={(value) => setAutomationForm((current) => ({ ...current, requireAcceptedDemoOnWhatsApp: value === true }))} />
+                        <span>Run only if the lead accepted the demo on WhatsApp</span>
+                      </label>
+                    </div>
+                  </>
+                ) : null}
                 <DialogFooter><Button onClick={() => void handleCreateAutomation()} disabled={submitting}>Save Automation</Button></DialogFooter>
               </DialogContent>
             </Dialog>
@@ -1150,7 +1218,7 @@ export function WhatsAppDashboard() {
                                           <Badge variant="outline" className={eligible ? 'border-emerald-200 text-emerald-700' : 'border-rose-200 text-rose-700'}>
                                             {eligible ? 'Eligible' : 'Missing phone'}
                                           </Badge>
-                                          {lead.lead_status ? <Badge variant="secondary" className="bg-slate-100 text-slate-700">{lead.lead_status.replace('_', ' ')}</Badge> : null}
+                                          {lead.lead_status ? <Badge variant="secondary" className="bg-slate-100 text-slate-700">{LEAD_STATUS_LABELS[normalizeLeadStatus(lead.lead_status)]}</Badge> : null}
                                         </div>
                                         <p className="text-sm text-muted-foreground">
                                           {lead.phone || 'No phone'} {lead.city ? `· ${lead.city}` : ''} {lead.classification ? `· ${lead.classification.replace('_', ' ')}` : ''}

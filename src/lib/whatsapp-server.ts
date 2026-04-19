@@ -4,6 +4,11 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 
 import { adminDb } from '@/lib/firebase-admin';
+import {
+  getLeadStatusLabel,
+  normalizeLeadStatus,
+  type CanonicalLeadStatus,
+} from '@/lib/lead-status';
 import { getRequiredInfobipConfig, hasInfobipConfig } from '@/lib/env.server';
 import { sendInfobipTemplate, sendInfobipTextMessage } from '@/lib/infobip';
 import { extractTemplateVariables, normalizePhone, sessionWindowCloseDate } from '@/lib/whatsapp';
@@ -89,7 +94,7 @@ export const createAutomationSchema = z.object({
   name: z.string().min(3),
   description: z.string().min(1),
   templateId: z.string().min(1),
-  triggerType: z.enum(['manual', 'scheduled', 'lead_status_changed', 'reply_missing', 'demo_booked']),
+  triggerType: z.enum(['manual', 'scheduled', 'lead_status_changed', 'reply_missing', 'demo_sent']),
   triggerConfig: z.record(z.string(), z.unknown()).optional().default({}),
   delayMinutes: z.number().int().min(0).optional(),
   schedule: z.string().optional(),
@@ -115,10 +120,40 @@ type LeadRecord = {
   city?: string;
   email?: string;
   owner_id?: string;
+  lead_status?: string;
+  accepted_demo_on_whatsapp?: boolean | null;
+  demo_sent_at?: Timestamp | null;
 };
 
 function collectionRef(name: string) {
   return adminDb.collection(name);
+}
+
+function safeBoolean(value: unknown) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    if (['true', '1', 'yes'].includes(value.toLowerCase())) return true;
+    if (['false', '0', 'no'].includes(value.toLowerCase())) return false;
+  }
+  return null;
+}
+
+function includesStatus(list: unknown, value: CanonicalLeadStatus) {
+  return Array.isArray(list) && list.map((item) => normalizeLeadStatus(String(item ?? ''))).includes(value);
+}
+
+async function logLeadAutomationActivity(leadId: string, leadName: string, description: string) {
+  await collectionRef('activities').add({
+    lead_id: leadId,
+    lead_name: leadName,
+    event_type: 'status_changed',
+    channel: 'system',
+    description,
+    timestamp: FieldValue.serverTimestamp(),
+    user_id: 'system',
+    user_name: 'WhatsApp Automation',
+    user_avatar: '',
+  });
 }
 
 export async function listWhatsAppDashboardData() {
@@ -432,6 +467,149 @@ export async function createAutomation(payload: unknown) {
   });
 
   return { id: docRef.id };
+}
+
+async function queueAutomationDispatch(input: {
+  automationId: string;
+  leadId: string;
+  timezone: string;
+  delayMinutes?: number | null;
+  payload?: Record<string, unknown>;
+}) {
+  const runAt = new Date(Date.now() + Math.max(input.delayMinutes ?? 0, 0) * 60 * 1000);
+  await collectionRef('whatsapp_scheduled_jobs').add({
+    jobType: 'automation_dispatch',
+    status: 'pending',
+    campaignId: null,
+    automationId: input.automationId,
+    leadId: input.leadId,
+    runAt: Timestamp.fromDate(runAt),
+    timezone: input.timezone,
+    payload: input.payload ?? {},
+    lastAttemptAt: null,
+    attemptCount: 0,
+    error: null,
+  });
+}
+
+async function sendAutomationTemplateToLead(input: {
+  automationId: string;
+  leadId: string;
+  context?: Record<string, unknown>;
+}) {
+  const [automationSnap, leadSnap] = await Promise.all([
+    collectionRef('whatsapp_automations').doc(input.automationId).get(),
+    collectionRef('leads').doc(input.leadId).get(),
+  ]);
+
+  if (!automationSnap.exists) {
+    throw new Error('Automation not found.');
+  }
+  if (!leadSnap.exists) {
+    throw new Error('Lead not found.');
+  }
+
+  const automation = automationSnap.data()!;
+  const lead = { id: leadSnap.id, ...leadSnap.data() } as LeadRecord;
+
+  if (!lead.phone) {
+    throw new Error('Lead does not have a phone number for WhatsApp automation.');
+  }
+
+  const campaign = await createCampaign({
+    name: `${automation.name} - ${lead.full_name || lead.company_name || lead.id}`,
+    description: automation.description || 'Single-lead WhatsApp automation dispatch.',
+    templateId: String(automation.templateId),
+    leadIds: [lead.id],
+    sendMode: 'send_now',
+    timezone: String(automation.timezone ?? 'Europe/Bucharest'),
+    ownerId: String(automation.ownerId ?? lead.owner_id ?? 'system'),
+    segmentSnapshot: JSON.stringify({
+      automationId: input.automationId,
+      triggerType: automation.triggerType,
+      context: input.context ?? {},
+    }),
+  });
+
+  const leadName = lead.full_name || lead.company_name || 'Lead';
+  const currentStatus = normalizeLeadStatus(lead.lead_status);
+
+  if (currentStatus !== 'demo_sent') {
+    await collectionRef('leads').doc(lead.id).set(
+      {
+        lead_status: 'demo_sent',
+        demo_sent_at: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    await logLeadAutomationActivity(
+      lead.id,
+      leadName,
+      `Lead status changed from ${getLeadStatusLabel(currentStatus)} to ${getLeadStatusLabel('demo_sent')}.`
+    );
+  } else {
+    await collectionRef('leads').doc(lead.id).set(
+      {
+        demo_sent_at: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
+  await logLeadAutomationActivity(
+    lead.id,
+    leadName,
+    `WhatsApp automation "${automation.name}" sent the demo template automatically.`
+  );
+
+  return campaign;
+}
+
+export async function queueWhatsAppAutomationsForLeadStatusChange(input: {
+  leadId: string;
+  previousStatus: CanonicalLeadStatus;
+  nextStatus: CanonicalLeadStatus;
+  context?: Record<string, unknown>;
+}) {
+  if (input.nextStatus === 'merged') {
+    return { queued: 0 };
+  }
+
+  const automationsSnap = await collectionRef('whatsapp_automations')
+    .where('status', '==', 'active')
+    .where('triggerType', '==', 'lead_status_changed')
+    .get();
+
+  let queued = 0;
+
+  for (const automationDoc of automationsSnap.docs) {
+    const automation = automationDoc.data();
+    const triggerConfig = (automation.triggerConfig as Record<string, unknown> | undefined) ?? {};
+    const filters = (automation.filters as Record<string, unknown> | undefined) ?? {};
+    const matchesFrom = !Array.isArray(triggerConfig.fromStatuses) || includesStatus(triggerConfig.fromStatuses, input.previousStatus);
+    const matchesTo = !Array.isArray(triggerConfig.toStatuses) || includesStatus(triggerConfig.toStatuses, input.nextStatus);
+    const requireDemoConsent =
+      safeBoolean(filters.requireAcceptedDemoOnWhatsApp) !== true ||
+      safeBoolean(input.context?.acceptedDemoOnWhatsApp) === true;
+    if (!matchesFrom || !matchesTo || !requireDemoConsent) {
+      continue;
+    }
+
+    await queueAutomationDispatch({
+      automationId: automationDoc.id,
+      leadId: input.leadId,
+      timezone: String(automation.timezone ?? 'Europe/Bucharest'),
+      delayMinutes: typeof automation.delayMinutes === 'number' ? automation.delayMinutes : 0,
+      payload: {
+        previousStatus: input.previousStatus,
+        nextStatus: input.nextStatus,
+        context: input.context ?? {},
+      },
+    });
+    queued += 1;
+  }
+
+  return { queued };
 }
 
 function resolveTemplateParameters(
@@ -782,6 +960,13 @@ export async function dispatchDueJobs() {
 
       if (job.jobType === 'campaign_dispatch' && job.campaignId) {
         await dispatchCampaign(String(job.campaignId));
+      }
+      if (job.jobType === 'automation_dispatch' && job.automationId && job.leadId) {
+        await sendAutomationTemplateToLead({
+          automationId: String(job.automationId),
+          leadId: String(job.leadId),
+          context: (job.payload as Record<string, unknown> | undefined) ?? {},
+        });
       }
 
       await jobDoc.ref.update({

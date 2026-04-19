@@ -82,7 +82,15 @@ export default function IntakePage() {
         outreach_status: 'not_started',
         created_at: serverTimestamp(),
         last_contact_at: null,
-        owner_id: user.uid
+        owner_id: user.uid,
+        uses_other_crm: null,
+        other_crm_name: null,
+        accepted_demo_on_whatsapp: null,
+        demo_sent_at: null,
+        last_ai_call_outcome: null,
+        ai_call_summary: null,
+        ai_call_transcript: null,
+        ai_call_last_synced_at: null,
       });
 
       // 2. Update import status

@@ -1,4 +1,5 @@
 import type { Timestamp } from 'firebase/firestore';
+import type { CanonicalLeadStatus } from '@/lib/lead-status';
 
 export type Lead = {
   id: string;
@@ -18,11 +19,19 @@ export type Lead = {
   independent_score: number;
   description?: string;
   classification: 'likely_independent' | 'possible_independent' | 'agency';
-  lead_status: 'new' | 'reviewed' | 'qualified' | 'contacted' | 'replied' | 'demo_booked' | 'closed_won' | 'closed_lost' | 'not_relevant' | 'merged';
+  lead_status: CanonicalLeadStatus;
   outreach_status: 'not_started' | 'in_sequence' | 'paused' | 'completed' | 'replied' | 'bounced';
   owner_id: string;
   created_at: Timestamp;
   last_contact_at: Timestamp | null;
+  uses_other_crm?: boolean | null;
+  other_crm_name?: string | null;
+  accepted_demo_on_whatsapp?: boolean | null;
+  demo_sent_at?: Timestamp | null;
+  last_ai_call_outcome?: AICallOutcome | null;
+  ai_call_summary?: string | null;
+  ai_call_transcript?: string | null;
+  ai_call_last_synced_at?: Timestamp | null;
   hasIndependentPhrase: boolean;
   isPersonalNameDetected: boolean;
   hasSoloBusinessIndicators: boolean;
@@ -116,7 +125,7 @@ export type WhatsAppTriggerType =
   | 'scheduled'
   | 'lead_status_changed'
   | 'reply_missing'
-  | 'demo_booked';
+  | 'demo_sent';
 
 export type WhatsAppTemplateButton = {
   type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER';

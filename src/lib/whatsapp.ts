@@ -36,7 +36,7 @@ export const whatsappTriggerTypes = [
   'scheduled',
   'lead_status_changed',
   'reply_missing',
-  'demo_booked',
+  'demo_sent',
 ] as const;
 
 export function normalizePhone(phone: string) {

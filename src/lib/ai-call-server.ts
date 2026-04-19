@@ -16,6 +16,8 @@ import {
   listVapiTools,
   updateVapiAssistant,
 } from '@/lib/vapi';
+import { getLeadStatusLabel, normalizeLeadStatus } from '@/lib/lead-status';
+import { queueWhatsAppAutomationsForLeadStatusChange } from '@/lib/whatsapp-server';
 import { normalizePhone } from '@/lib/whatsapp';
 
 const aiCallCampaignStatuses = ['draft', 'scheduled', 'active', 'paused', 'completed', 'failed'] as const;
@@ -96,6 +98,9 @@ type LeadRecord = {
   owner_id?: string;
   lead_status?: string;
   outreach_status?: string;
+  uses_other_crm?: boolean | null;
+  other_crm_name?: string | null;
+  accepted_demo_on_whatsapp?: boolean | null;
   do_not_call?: boolean;
   call_consent_status?: string;
 };
@@ -415,23 +420,164 @@ async function createTaskForLead(input: {
   });
 }
 
-async function updateLeadForOutcome(lead: LeadRecord, outcome: string, finalAttemptReached: boolean) {
+type ExtractedCallInsights = {
+  usesOtherCrm: boolean | null;
+  otherCrmName: string | null;
+  acceptedDemoOnWhatsApp: boolean | null;
+};
+
+function extractNamedEntity(source: string, patterns: RegExp[]) {
+  for (const pattern of patterns) {
+    const match = source.match(pattern);
+    const value = match?.[1]?.trim();
+    if (value) {
+      return value.replace(/[.!,;:]$/, '').trim();
+    }
+  }
+
+  return null;
+}
+
+function extractBooleanInsight(source: string, positivePatterns: RegExp[], negativePatterns: RegExp[]) {
+  for (const pattern of positivePatterns) {
+    if (pattern.test(source)) return true;
+  }
+
+  for (const pattern of negativePatterns) {
+    if (pattern.test(source)) return false;
+  }
+
+  return null;
+}
+
+function extractCallInsights(input: { summary?: string; transcript?: string; metadata?: Record<string, unknown> | null }) {
+  const combined = `${input.summary ?? ''}\n${input.transcript ?? ''}`.toLowerCase();
+  const metadata = input.metadata ?? {};
+  const toolOutcome = (metadata.toolOutcome as Record<string, unknown> | undefined) ?? {};
+
+  const usesOtherCrm =
+    typeof toolOutcome.usesOtherCrm === 'boolean'
+      ? toolOutcome.usesOtherCrm
+      : extractBooleanInsight(
+          combined,
+          [
+            /\b(folose(?:ste|sc)\s+(?:deja\s+)?(?:un\s+alt\s+)?crm)\b/,
+            /\b(already uses? (?:another )?crm)\b/,
+            /\b(works with .*crm)\b/,
+          ],
+          [/\b(fara crm)\b/, /\b(nu folos(?:e|esc) crm)\b/, /\b(no crm)\b/]
+        );
+
+  const acceptedDemoOnWhatsApp =
+    typeof toolOutcome.acceptedDemoOnWhatsApp === 'boolean'
+      ? toolOutcome.acceptedDemoOnWhatsApp
+      : extractBooleanInsight(
+          combined,
+          [
+            /\b(vrea un demo gratuit)\b/,
+            /\b(doreste un demo gratuit)\b/,
+            /\b(accept(?:a|at) demo gratuit)\b/,
+            /\b(trimite(?:ti)? demo(?:ul)? pe whatsapp)\b/,
+            /\b(accept(?:a|at) sa (?:ii|i) trimit(?:i)? demo(?:ul)? pe whatsapp)\b/,
+            /\b(vrea demo pe whatsapp)\b/,
+            /\b(doreste demo pe whatsapp)\b/,
+            /\b(send (?:the )?demo on whatsapp)\b/,
+            /\b(agreed to receive .*whatsapp)\b/,
+            /\b(wants? a free demo)\b/,
+            /\b(accepted? a free demo)\b/,
+          ],
+          [
+            /\b(nu vrea demo)\b/,
+            /\b(refuza demo)\b/,
+            /\b(nu pe whatsapp)\b/,
+            /\b(fara whatsapp)\b/,
+            /\b(does not want a demo)\b/,
+            /\b(don't send .*whatsapp)\b/,
+            /\b(no demo)\b/,
+          ]
+        );
+
+  const otherCrmName =
+    typeof toolOutcome.otherCrmName === 'string' && toolOutcome.otherCrmName.trim()
+      ? toolOutcome.otherCrmName.trim()
+      : extractNamedEntity(combined, [
+          /\b(?:folose(?:ste|sc)\s+(?:deja\s+)?|are\s+)(?:crm(?:-ul)?\s+)?([a-z0-9 ._-]{2,40})\b/,
+          /\b(?:uses?|using)\s+([a-z0-9 ._-]{2,40})\s+crm\b/,
+          /\bcrm(?:-ul)?\s+(?:este|e)\s+([a-z0-9 ._-]{2,40})\b/,
+        ]);
+
+  return {
+    usesOtherCrm,
+    otherCrmName: usesOtherCrm === false ? null : otherCrmName,
+    acceptedDemoOnWhatsApp,
+  } satisfies ExtractedCallInsights;
+}
+
+async function syncLeadStatusAndAutomations(input: {
+  lead: LeadRecord;
+  nextStatus?: string;
+  leadUpdates: Record<string, unknown>;
+  automationContext?: Record<string, unknown>;
+}) {
+  const previousStatus = normalizeLeadStatus(input.lead.lead_status);
+  const nextStatus = input.nextStatus ? normalizeLeadStatus(input.nextStatus) : previousStatus;
+
+  await collectionRef('leads').doc(input.lead.id).set(input.leadUpdates, { merge: true });
+
+  if (previousStatus !== nextStatus) {
+    await logActivity(
+      input.lead,
+      `Lead status changed from ${getLeadStatusLabel(previousStatus)} to ${getLeadStatusLabel(nextStatus)}.`
+    );
+  }
+
+  await queueWhatsAppAutomationsForLeadStatusChange({
+    leadId: input.lead.id,
+    previousStatus,
+    nextStatus,
+    context: input.automationContext ?? {},
+  });
+}
+
+async function updateLeadForOutcome(
+  lead: LeadRecord,
+  outcome: string,
+  finalAttemptReached: boolean,
+  insights: ExtractedCallInsights,
+  callArtifacts?: { summary?: string; transcript?: string }
+) {
   const leadUpdates: Record<string, unknown> = {
     last_contact_at: FieldValue.serverTimestamp(),
+    last_ai_call_outcome: outcome,
+    ai_call_summary: callArtifacts?.summary ?? null,
+    ai_call_transcript: callArtifacts?.transcript ?? null,
+    ai_call_last_synced_at: FieldValue.serverTimestamp(),
+    uses_other_crm: insights.usesOtherCrm,
+    other_crm_name: insights.otherCrmName,
+    accepted_demo_on_whatsapp: insights.acceptedDemoOnWhatsApp,
   };
+  let nextStatus = normalizeLeadStatus(lead.lead_status);
 
   if (outcome === 'interested') {
-    leadUpdates.lead_status = 'qualified';
+    nextStatus = insights.acceptedDemoOnWhatsApp ? 'demo_sent' : 'contacted';
+    leadUpdates.lead_status = nextStatus;
     leadUpdates.outreach_status = 'completed';
     await createTaskForLead({ lead, type: 'follow_up', daysFromNow: 1 });
-    await logActivity(lead, 'AI call marked this lead interested. Recommended next step: WhatsApp follow-up.');
+    await logActivity(
+      lead,
+      insights.acceptedDemoOnWhatsApp
+        ? 'AI call confirmed interest and WhatsApp demo consent. Demo automation can run immediately.'
+        : 'AI call marked this lead interested. Recommended next step: follow-up with a free demo.'
+    );
   } else if (outcome === 'callback_requested') {
-    leadUpdates.lead_status = 'contacted';
+    nextStatus = 'contacted';
+    leadUpdates.lead_status = nextStatus;
     leadUpdates.outreach_status = 'completed';
     await createTaskForLead({ lead, type: 'call', daysFromNow: 1 });
     await logActivity(lead, 'AI call requested a callback. Recommended next step: email confirmation and manual callback.');
   } else if (outcome === 'not_interested') {
-    leadUpdates.lead_status = 'closed_lost';
+    nextStatus = 'not_interested';
+    leadUpdates.lead_status = nextStatus;
     leadUpdates.outreach_status = 'completed';
     await logActivity(lead, 'AI call marked this lead not interested.');
   } else if (['voicemail', 'no_answer', 'busy', 'failed'].includes(outcome)) {
@@ -443,11 +589,26 @@ async function updateLeadForOutcome(lead: LeadRecord, outcome: string, finalAtte
       await logActivity(lead, `AI call ended with ${outcome.replace(/_/g, ' ')}. A retry remains eligible.`);
     }
   } else {
+    if (nextStatus === 'new') {
+      nextStatus = 'contacted';
+      leadUpdates.lead_status = nextStatus;
+    }
     leadUpdates.outreach_status = 'completed';
     await logActivity(lead, `AI call completed with outcome "${outcome.replace(/_/g, ' ')}".`);
   }
 
-  await collectionRef('leads').doc(lead.id).set(leadUpdates, { merge: true });
+  await syncLeadStatusAndAutomations({
+    lead,
+    nextStatus,
+    leadUpdates,
+    automationContext: {
+      outcome,
+      acceptedDemoOnWhatsApp: insights.acceptedDemoOnWhatsApp,
+      usesOtherCrm: insights.usesOtherCrm,
+      otherCrmName: insights.otherCrmName,
+      source: 'ai_call',
+    },
+  });
 }
 
 async function cancelPendingJobsForCampaign(campaignId: string) {
@@ -1269,6 +1430,23 @@ async function handleToolCalls(input: {
         { merge: true }
       );
 
+      if (input.leadId) {
+        await collectionRef('leads').doc(input.leadId).set(
+          {
+            uses_other_crm:
+              typeof parameters.usesOtherCrm === 'boolean' ? parameters.usesOtherCrm : input.lead?.uses_other_crm ?? null,
+            other_crm_name:
+              typeof parameters.otherCrmName === 'string' ? parameters.otherCrmName : input.lead?.other_crm_name ?? null,
+            accepted_demo_on_whatsapp:
+              typeof parameters.acceptedDemoOnWhatsApp === 'boolean'
+                ? parameters.acceptedDemoOnWhatsApp
+                : input.lead?.accepted_demo_on_whatsapp ?? null,
+            ai_call_last_synced_at: FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
+
       results.push({
         name,
         toolCallId,
@@ -1387,6 +1565,11 @@ export async function processVapiWebhook(
     const outcome = explicitToolOutcome && aiCallOutcomes.includes(explicitToolOutcome as (typeof aiCallOutcomes)[number])
       ? explicitToolOutcome
       : inferOutcomeFromReport(message);
+    const insights = extractCallInsights({
+      summary: String(message.summary ?? ''),
+      transcript: artifacts.transcript,
+      metadata: (currentRecipient.metadata as Record<string, unknown> | undefined) ?? null,
+    });
     const endedReason = String(message.endedReason ?? '');
     const campaignSnap = await collectionRef('ai_call_campaigns').doc(campaignId).get();
     const campaign = campaignSnap.data() ?? {};
@@ -1424,7 +1607,10 @@ export async function processVapiWebhook(
     );
 
     if (lead) {
-      await updateLeadForOutcome(lead, outcome, finalAttemptReached);
+      await updateLeadForOutcome(lead, outcome, finalAttemptReached, insights, {
+        summary: String(message.summary ?? ''),
+        transcript: artifacts.transcript,
+      });
     }
 
     if (
