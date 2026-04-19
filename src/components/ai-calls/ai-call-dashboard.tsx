@@ -87,16 +87,41 @@ function HealthPill({ title, healthy }: { title: string; healthy: boolean }) {
   );
 }
 
-function MetricCard({ title, value, hint, icon: Icon }: { title: string; value: string; hint: string; icon: React.ElementType }) {
+function MetricCard({
+  title,
+  value,
+  hint,
+  icon: Icon,
+  tone = 'default',
+}: {
+  title: string;
+  value: string;
+  hint: string;
+  icon: React.ElementType;
+  tone?: 'default' | 'active' | 'pending' | 'delivered' | 'seen' | 'replies';
+}) {
+  const cardTone =
+    tone === 'active'
+      ? 'border-emerald-200 bg-emerald-50'
+      : tone === 'pending'
+        ? 'border-amber-200 bg-amber-50'
+        : tone === 'delivered'
+          ? 'border-sky-200 bg-sky-50'
+          : tone === 'seen'
+            ? 'border-indigo-200 bg-indigo-50'
+            : tone === 'replies'
+              ? 'border-cyan-200 bg-cyan-50'
+              : 'border-white/10 bg-white/80';
+
   return (
-    <Card className="border-white/10 bg-white/80">
+    <Card className={cardTone}>
       <CardContent className="flex items-center justify-between p-5">
         <div>
           <p className="text-sm text-muted-foreground">{title}</p>
           <p className="mt-1 font-headline text-3xl font-bold text-primary">{value}</p>
           <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
         </div>
-        <div className="rounded-2xl bg-muted/60 p-3">
+        <div className="rounded-2xl bg-white/60 p-3">
           <Icon className="h-5 w-5 text-primary" />
         </div>
       </CardContent>
@@ -584,10 +609,10 @@ export function AICallDashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Active Campaigns" value={String(data?.health.activeCampaigns ?? 0)} hint="Currently live call motions" icon={Rocket} />
-        <MetricCard title="Queued Calls" value={String(metrics.queued)} hint="Waiting to be dialed or processed" icon={Timer} />
-        <MetricCard title="Answered Calls" value={String(metrics.answered)} hint="Reached a live conversation state" icon={PhoneCall} />
-        <MetricCard title="Interested Outcomes" value={String(metrics.interested)} hint="Calls marked interested so far" icon={Bot} />
+        <MetricCard title="Active Campaigns" value={String(data?.health.activeCampaigns ?? 0)} hint="Currently live call motions" icon={Rocket} tone="active" />
+        <MetricCard title="Queued Calls" value={String(metrics.queued)} hint="Waiting to be dialed or processed" icon={Timer} tone="pending" />
+        <MetricCard title="Answered Calls" value={String(metrics.answered)} hint="Reached a live conversation state" icon={PhoneCall} tone="delivered" />
+        <MetricCard title="Interested Outcomes" value={String(metrics.interested)} hint="Calls marked interested so far" icon={Bot} tone="replies" />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

@@ -1,5 +1,4 @@
 'use client';
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Play, Pause, FolderArchive, Mail, MessageSquare, Phone, MoreVertical } from "lucide-react";
@@ -127,6 +126,15 @@ const campaigns = [
 ];
 
 type Campaign = (typeof campaigns)[0];
+type TopBarDashboardPayload = {
+  campaigns?: Array<Record<string, unknown>>;
+  leads?: Array<Record<string, unknown>>;
+  templates?: Array<Record<string, unknown>>;
+  scheduledJobs?: Array<Record<string, unknown>>;
+  health?: {
+    activeCampaigns?: number;
+  };
+};
 
 const statusStyles: Record<Campaign['status'], string> = {
     active: 'bg-green-100 text-green-800 border-green-200',
@@ -228,7 +236,7 @@ const CampaignsGrid = ({ campaigns, channel }: { campaigns: Campaign[], channel:
 
 export default function CampaignsPage() {
   return (
-    <div>
+    <div className="-mt-2 overflow-x-clip md:-mt-3">
       <div className="mb-6 overflow-hidden rounded-[24px] border border-slate-200 bg-[linear-gradient(135deg,rgba(239,244,251,0.95),rgba(248,250,253,1)_45%,rgba(239,247,243,0.95))] shadow-sm">
         <div className="flex flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div className="min-w-0">
@@ -276,6 +284,7 @@ export default function CampaignsPage() {
             <CampaignsGrid campaigns={campaigns} channel="email" />
         </TabsContent>
       </Tabs>
+
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { Header } from '@/components/layout/header';
+import { CampaignsTopBar } from '@/components/campaigns/campaigns-topbar';
 import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarNav, SidebarFooterNav } from '@/components/layout/sidebar-nav';
 import { Building } from 'lucide-react';
@@ -36,6 +37,7 @@ export default function AppLayout({
           </Sidebar>
           <div className="flex flex-col flex-1">
             <Header />
+            <CampaignsTopBar />
             <main className="flex-1 p-4 md:p-6 lg:p-8 bg-background">
               {children}
             </main>
