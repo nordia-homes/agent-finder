@@ -18,9 +18,9 @@ import {
 } from '@/lib/lead-status';
 
 const classificationStyles: Record<Lead['classification'], string> = {
-  likely_independent: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200',
-  possible_independent: 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200',
-  agency: 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200',
+  likely_independent: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  possible_independent: 'border-amber-200 bg-amber-50 text-amber-700',
+  agency: 'border-rose-200 bg-rose-50 text-rose-700',
 };
 
 export const columns: ColumnDef<Lead>[] = [
@@ -60,14 +60,14 @@ export const columns: ColumnDef<Lead>[] = [
       const name = lead.full_name || lead.company_name;
       return (
         <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback>{name?.charAt(0)}</AvatarFallback>
+          <Avatar className="h-10 w-10 border border-[#dbe2ee] bg-[#eef3fb]">
+            <AvatarFallback className="bg-[#eef3fb] text-[#5f7399]">{name?.charAt(0)}</AvatarFallback>
           </Avatar>
-          <div>
-            <Link href={`/leads/${lead.id}`} className="font-medium hover:underline">
+          <div className="min-w-0">
+            <Link href={`/leads/${lead.id}`} className="truncate text-sm font-semibold text-[#152033] transition-colors hover:text-[#415782]">
               {name}
             </Link>
-            <div className="text-xs text-muted-foreground">{lead.email}</div>
+            <div className="truncate text-xs text-[#7d8aa3]">{lead.email || lead.company_name || '-'}</div>
           </div>
         </div>
       );
@@ -87,8 +87,8 @@ export const columns: ColumnDef<Lead>[] = [
     ),
     cell: ({ row }) => {
         const score = row.original.independent_score;
-        const color = score > 75 ? 'text-green-600' : score > 50 ? 'text-amber-600' : 'text-red-600';
-        return <div className={cn("font-medium", color)}>{score}</div>
+        const color = score > 75 ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : score > 50 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-rose-700 bg-rose-50 border-rose-200';
+        return <div className={cn("inline-flex min-w-12 items-center justify-center rounded-full border px-3 py-1 text-sm font-semibold", color)}>{score}</div>
     }
   },
   {
@@ -115,11 +115,18 @@ export const columns: ColumnDef<Lead>[] = [
   {
     accessorKey: 'city',
     header: 'Location',
-     cell: ({ row }) => `${row.original.city}, ${row.original.county}`,
+     cell: ({ row }) => (
+      <div className="text-sm text-[#4d5d7b]">
+        {row.original.city}, {row.original.county}
+      </div>
+     ),
   },
   {
     accessorKey: 'active_listings_count',
     header: 'Listings',
+    cell: ({ row }) => (
+      <div className="text-sm font-medium text-[#152033]">{row.original.active_listings_count ?? 0}</div>
+    ),
   },
   {
     accessorKey: 'created_at',
@@ -132,7 +139,7 @@ export const columns: ColumnDef<Lead>[] = [
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-     cell: ({ row }) => format(row.original.created_at.toDate(), 'MMM d, yyyy'),
+     cell: ({ row }) => <div className="text-sm text-[#4d5d7b]">{format(row.original.created_at.toDate(), 'MMM d, yyyy')}</div>,
   },
   {
     id: 'actions',
@@ -141,7 +148,7 @@ export const columns: ColumnDef<Lead>[] = [
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
+            <Button variant="ghost" className="h-9 w-9 rounded-full p-0 text-[#61739a] hover:bg-[#eef3fb] hover:text-[#415782]">
               <span className="sr-only">Open menu</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
