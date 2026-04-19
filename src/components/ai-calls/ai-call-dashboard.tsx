@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { AlertCircle, Bot, ExternalLink, PhoneCall, PlusCircle, RefreshCw, Rocket, Timer } from 'lucide-react';
+import { AlertCircle, Bot, ExternalLink, Pencil, PhoneCall, PlusCircle, RefreshCw, Rocket, Timer } from 'lucide-react';
 import Link from 'next/link';
 
 import { useAICallDashboard } from '@/hooks/use-ai-call-dashboard';
@@ -138,21 +138,8 @@ const statusStyles: Record<string, string> = {
   failed: 'bg-rose-100 text-rose-800 border-rose-200',
 };
 
-export function AICallDashboard() {
-  const { toast } = useToast();
-  const { data, loading, error, refresh } = useAICallDashboard<DashboardPayload>();
-  const [assistantDialogOpen, setAssistantDialogOpen] = useState(false);
-  const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [assistantForm, setAssistantForm] = useState({
-    name: '',
-    description: '',
-    assistantId: '',
-    phoneNumberId: '',
-    firstMessage: '',
-    objective: '',
-  });
-  const [campaignForm, setCampaignForm] = useState({
+function createEmptyCampaignForm() {
+  return {
     name: '',
     description: '',
     assistantRefId: '',
@@ -164,7 +151,45 @@ export function AICallDashboard() {
     timezone: 'Europe/Bucharest',
     leadIds: [] as string[],
     search: '',
+  };
+}
+
+function formatDateTimeLocalInput(value: unknown) {
+  let date: Date | null = null;
+
+  if (value instanceof Date) {
+    date = value;
+  } else if (typeof value === 'string' && value) {
+    const parsed = new Date(value);
+    date = Number.isNaN(parsed.getTime()) ? null : parsed;
+  } else if (value && typeof value === 'object') {
+    date = asDate(value as TimestampLike);
+  }
+
+  if (!date) {
+    return '';
+  }
+
+  const pad = (input: number) => String(input).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+export function AICallDashboard() {
+  const { toast } = useToast();
+  const { data, loading, error, refresh } = useAICallDashboard<DashboardPayload>();
+  const [assistantDialogOpen, setAssistantDialogOpen] = useState(false);
+  const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
+  const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [assistantForm, setAssistantForm] = useState({
+    name: '',
+    description: '',
+    assistantId: '',
+    phoneNumberId: '',
+    firstMessage: '',
+    objective: '',
   });
+  const [campaignForm, setCampaignForm] = useState(createEmptyCampaignForm);
 
   const assistants = data?.assistants ?? [];
   const campaigns = data?.campaigns ?? [];
@@ -235,6 +260,7 @@ export function AICallDashboard() {
     () => assistantOptions.find((assistant) => assistant.value === campaignForm.assistantRefId) ?? null,
     [assistantOptions, campaignForm.assistantRefId]
   );
+  const isEditingCampaign = Boolean(editingCampaignId);
   const canSaveCampaign =
     campaignForm.name.trim().length > 0 &&
     campaignForm.assistantRefId.length > 0 &&
@@ -255,6 +281,18 @@ export function AICallDashboard() {
     queued: campaigns.reduce((sum, campaign) => sum + safeNumber(campaign.queuedCount), 0),
     failed: campaigns.reduce((sum, campaign) => sum + safeNumber(campaign.failedCount), 0),
   }), [campaigns]);
+
+  function resetCampaignComposer() {
+    setEditingCampaignId(null);
+    setCampaignForm(createEmptyCampaignForm());
+  }
+
+  function handleCampaignDialogChange(open: boolean) {
+    setCampaignDialogOpen(open);
+    if (!open) {
+      resetCampaignComposer();
+    }
+  }
 
   async function handleCreateAssistant() {
     setSubmitting(true);
@@ -277,7 +315,7 @@ export function AICallDashboard() {
     }
   }
 
-  async function handleCreateCampaign() {
+  async function handleSaveCampaign() {
     setSubmitting(true);
     try {
       if (!campaignForm.name.trim()) {
@@ -309,19 +347,80 @@ export function AICallDashboard() {
         maxAttempts: Number(campaignForm.maxAttempts),
         scheduledAt: campaignForm.sendMode === 'scheduled' ? new Date(campaignForm.scheduledAt).toISOString() : undefined,
       };
-      const response = await fetch('/api/ai-calls/campaigns', {
-        method: 'POST',
+      const isEditing = Boolean(editingCampaignId);
+      const response = await fetch(isEditing ? `/api/ai-calls/campaigns/${editingCampaignId}` : '/api/ai-calls/campaigns', {
+        method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error || 'Unable to create AI call campaign.');
+      if (!response.ok) throw new Error(body.error || `Unable to ${isEditing ? 'update' : 'create'} AI call campaign.`);
       setCampaignDialogOpen(false);
-      setCampaignForm({ name: '', description: '', assistantRefId: '', sendMode: 'send_now', retryEnabled: true, retryDelayMinutes: '1440', maxAttempts: '3', scheduledAt: '', timezone: 'Europe/Bucharest', leadIds: [], search: '' });
-      toast({ title: 'Campaign saved', description: 'The AI call campaign is now in the workspace.' });
+      resetCampaignComposer();
+      toast({
+        title: isEditing ? 'Campaign updated' : 'Campaign saved',
+        description: isEditing ? 'The draft AI call campaign was updated successfully.' : 'The AI call campaign is now in the workspace.',
+      });
       await refresh();
     } catch (submitError) {
-      toast({ title: 'Campaign failed', description: submitError instanceof Error ? submitError.message : 'Unexpected campaign error.', variant: 'destructive' });
+      toast({
+        title: isEditingCampaign ? 'Update failed' : 'Campaign failed',
+        description: submitError instanceof Error ? submitError.message : 'Unexpected campaign error.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleEditDraftCampaign(campaignId: string) {
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/ai-calls/campaigns/${campaignId}`);
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Unable to load AI call campaign.');
+      }
+
+      const campaign = payload.campaign ?? {};
+      if (campaign.status !== 'draft') {
+        throw new Error('Only draft campaigns can be edited.');
+      }
+
+      const assistantRefId =
+        typeof campaign.assistantRefId === 'string' && campaign.assistantRefId
+          ? campaign.assistantRefId
+          : typeof campaign.assistantId === 'string' && campaign.assistantId
+            ? `vapi:${campaign.assistantId}`
+            : '';
+
+      const leadIds = Array.isArray(campaign.leadIds)
+        ? campaign.leadIds.map((leadId: unknown) => String(leadId))
+        : Array.isArray(payload.recipients)
+          ? payload.recipients.map((recipient: Record<string, unknown>) => String(recipient.leadId ?? '')).filter(Boolean)
+          : [];
+
+      setEditingCampaignId(campaignId);
+      setCampaignForm({
+        name: String(campaign.name ?? ''),
+        description: String(campaign.description ?? ''),
+        assistantRefId,
+        sendMode: campaign.sendMode === 'manual' || campaign.sendMode === 'scheduled' ? campaign.sendMode : 'send_now',
+        retryEnabled: Boolean(campaign.retryEnabled ?? true),
+        retryDelayMinutes: String(campaign.retryDelayMinutes ?? 1440),
+        maxAttempts: String(campaign.maxAttempts ?? 3),
+        scheduledAt: formatDateTimeLocalInput(campaign.scheduledAt),
+        timezone: String(campaign.timezone ?? 'Europe/Bucharest'),
+        leadIds,
+        search: '',
+      });
+      setCampaignDialogOpen(true);
+    } catch (loadError) {
+      toast({
+        title: 'Unable to open draft',
+        description: loadError instanceof Error ? loadError.message : 'Unexpected campaign load error.',
+        variant: 'destructive',
+      });
     } finally {
       setSubmitting(false);
     }
@@ -399,14 +498,18 @@ export function AICallDashboard() {
                 <DialogFooter><Button onClick={() => void handleCreateAssistant()} disabled={submitting}>Save Assistant</Button></DialogFooter>
               </DialogContent>
             </Dialog>
-            <Dialog open={campaignDialogOpen} onOpenChange={setCampaignDialogOpen}>
+            <Dialog open={campaignDialogOpen} onOpenChange={handleCampaignDialogChange}>
               <DialogTrigger asChild>
-                <Button><PlusCircle className="mr-2 h-4 w-4" />New Campaign</Button>
+                <Button onClick={resetCampaignComposer}><PlusCircle className="mr-2 h-4 w-4" />New Campaign</Button>
               </DialogTrigger>
               <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden border-[#e7dfd2] bg-[#f4efe7] p-0 sm:max-w-6xl">
                 <DialogHeader className="shrink-0 border-b border-[#e7dfd2] bg-[#f8f3eb] px-6 py-5">
-                  <DialogTitle className="text-2xl text-[#1f1b18]">Create AI Call Campaign</DialogTitle>
-                  <DialogDescription className="text-[#6f6458]">Pick a saved assistant profile, select leads, and choose delivery mode.</DialogDescription>
+                  <DialogTitle className="text-2xl text-[#1f1b18]">{isEditingCampaign ? 'Edit Draft AI Call Campaign' : 'Create AI Call Campaign'}</DialogTitle>
+                  <DialogDescription className="text-[#6f6458]">
+                    {isEditingCampaign
+                      ? 'Update the saved draft before you schedule it or dispatch it.'
+                      : 'Pick a saved assistant profile, select leads, and choose delivery mode.'}
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="min-h-0 flex-1 overflow-y-auto">
                   <div className="grid gap-6 px-6 py-6 xl:grid-cols-[1fr_0.72fr]">
@@ -608,7 +711,9 @@ export function AICallDashboard() {
                     <p className="text-sm text-[#6f6458]">
                       {filteredLeads.filter((lead) => campaignForm.leadIds.includes(lead.id) && lead.phone).length} eligible recipients ready{campaignForm.sendMode === 'scheduled' ? ' for scheduling' : ' for sending'}.
                     </p>
-                    <Button className="bg-[#1f1b18] text-white hover:bg-[#2a2521]" onClick={() => void handleCreateCampaign()} disabled={submitting || !canSaveCampaign}>Save Campaign</Button>
+                    <Button className="bg-[#1f1b18] text-white hover:bg-[#2a2521]" onClick={() => void handleSaveCampaign()} disabled={submitting || !canSaveCampaign}>
+                      {isEditingCampaign ? 'Update Campaign' : 'Save Campaign'}
+                    </Button>
                   </div>
                 </DialogFooter>
               </DialogContent>
@@ -725,7 +830,12 @@ export function AICallDashboard() {
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button size="sm" onClick={() => void handleDispatchCampaign(campaign.id)} disabled={submitting}>Dispatch</Button>
-                    {campaign.status === 'paused' ? (
+                    {campaign.status === 'draft' ? (
+                      <Button size="sm" variant="outline" onClick={() => void handleEditDraftCampaign(campaign.id)} disabled={submitting}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit Draft
+                      </Button>
+                    ) : campaign.status === 'paused' ? (
                       <Button size="sm" variant="outline" onClick={() => void handleCampaignAction(campaign.id, 'resume')} disabled={submitting}>Resume</Button>
                     ) : (
                       <Button size="sm" variant="outline" onClick={() => void handleCampaignAction(campaign.id, 'pause')} disabled={submitting}>Pause</Button>

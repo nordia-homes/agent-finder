@@ -797,6 +797,160 @@ export async function createAICallCampaign(payload: unknown) {
   return { id: campaignRef.id };
 }
 
+export async function updateAICallCampaign(campaignId: string, payload: unknown) {
+  const data = createAICallCampaignSchema.parse(payload);
+  const campaignRef = collectionRef('ai_call_campaigns').doc(campaignId);
+  const campaignSnap = await campaignRef.get();
+
+  if (!campaignSnap.exists) {
+    throw new Error('AI call campaign not found.');
+  }
+
+  const currentCampaign = campaignSnap.data()!;
+  if (currentCampaign.status !== 'draft') {
+    throw new Error('Only draft AI call campaigns can be edited.');
+  }
+
+  const assistant = await resolveAssistantConfig(data);
+  const leads = await loadLeads(data.leadIds);
+  const validLeads = leads.filter(isLeadCallable);
+
+  if (validLeads.length === 0) {
+    throw new Error('No selected leads are eligible for AI calling.');
+  }
+
+  const status = data.sendMode === 'scheduled' && data.scheduledAt ? 'scheduled' : 'draft';
+  const recipientStatus = data.sendMode === 'scheduled' && data.scheduledAt ? 'scheduled' : 'queued';
+  const [existingRecipientsSnap, existingJobsSnap] = await Promise.all([
+    collectionRef('ai_call_campaign_recipients').where('campaignId', '==', campaignId).get(),
+    collectionRef('ai_call_scheduled_jobs').where('campaignId', '==', campaignId).get(),
+  ]);
+
+  const writer = adminDb.bulkWriter();
+  const now = FieldValue.serverTimestamp();
+
+  writer.set(
+    campaignRef,
+    {
+      channel: 'ai_call',
+      name: data.name,
+      description: data.description,
+      status,
+      assistantRefId: assistant.assistantRefId,
+      assistantId: assistant.assistantId,
+      phoneNumberId: assistant.phoneNumberId,
+      sendMode: data.sendMode,
+      retryEnabled: data.retryEnabled,
+      retryDelayMinutes: data.retryDelayMinutes,
+      maxAttempts: data.maxAttempts,
+      retryOutcomes: data.retryOutcomes,
+      scheduledAt: data.scheduledAt ? Timestamp.fromDate(new Date(data.scheduledAt)) : null,
+      timezone: data.timezone,
+      ownerId: data.ownerId,
+      segmentSnapshot: data.segmentSnapshot ?? null,
+      leadIds: validLeads.map((lead) => lead.id),
+      leadCount: validLeads.length,
+      queuedCount: validLeads.length,
+      ringingCount: 0,
+      inProgressCount: 0,
+      answeredCount: 0,
+      completedCount: 0,
+      failedCount: 0,
+      voicemailCount: 0,
+      interestedCount: 0,
+      notInterestedCount: 0,
+      callbackRequestedCount: 0,
+      noAnswerCount: 0,
+      busyCount: 0,
+      lastDispatchedAt: null,
+      lastWebhookAt: null,
+      updatedAt: now,
+    },
+    { merge: true }
+  );
+
+  for (const doc of existingRecipientsSnap.docs) {
+    writer.delete(doc.ref);
+  }
+
+  for (const doc of existingJobsSnap.docs) {
+    writer.delete(doc.ref);
+  }
+
+  for (const lead of validLeads) {
+    const recipientRef = collectionRef('ai_call_campaign_recipients').doc();
+    writer.set(recipientRef, {
+      campaignId,
+      leadId: lead.id,
+      phone: normalizePhone(lead.phone!),
+      status: recipientStatus,
+      outcome: 'unknown',
+      assistantId: assistant.assistantId,
+      phoneNumberId: assistant.phoneNumberId,
+      vapiCallId: null,
+      attemptCount: 0,
+      failureReason: null,
+      queuedAt: now,
+      scheduledAt: data.scheduledAt ? Timestamp.fromDate(new Date(data.scheduledAt)) : null,
+      startedAt: null,
+      answeredAt: null,
+      endedAt: null,
+      lastEventAt: null,
+      durationSeconds: null,
+      endedReason: null,
+      summary: null,
+      transcript: null,
+      messages: [],
+      recordingUrl: null,
+      stereoRecordingUrl: null,
+      cost: null,
+      customer: {
+        number: normalizePhone(lead.phone!),
+        name: lead.full_name || lead.company_name || lead.id,
+      },
+      metadata: {
+        campaignId,
+        recipientId: recipientRef.id,
+        leadId: lead.id,
+        ownerId: data.ownerId,
+        retryEligible: data.retryEnabled,
+      },
+      nextStepChannel: null,
+    });
+  }
+
+  if (status === 'scheduled' && data.scheduledAt) {
+    const jobRef = collectionRef('ai_call_scheduled_jobs').doc();
+    writer.set(jobRef, {
+      jobType: 'campaign_dispatch',
+      status: 'pending',
+      campaignId,
+      recipientId: null,
+      leadId: null,
+      runAt: Timestamp.fromDate(new Date(data.scheduledAt)),
+      timezone: data.timezone,
+      payload: { campaignId },
+      lastAttemptAt: null,
+      attemptCount: 0,
+      error: null,
+    });
+  }
+
+  await writer.close();
+
+  await storeAIEvent({
+    type: 'campaign_updated',
+    campaignId,
+    payload: { leadCount: validLeads.length, sendMode: data.sendMode },
+  });
+
+  if (data.sendMode === 'send_now') {
+    await dispatchAICallCampaign(campaignId);
+  }
+
+  return { id: campaignId };
+}
+
 export async function dispatchAICallCampaign(campaignId: string) {
   const campaignRef = collectionRef('ai_call_campaigns').doc(campaignId);
   const campaignSnap = await campaignRef.get();
