@@ -516,6 +516,7 @@ export async function listAICallDashboardData() {
   const recentWebhook = eventData.find((event) => event.source === 'vapi_webhook');
   const activeCampaigns = campaignData.filter((campaign) => campaign.status === 'active').length;
   const attentionCampaigns = campaignData.filter((campaign) => safeNumber(campaign.failedCount) > 0).length;
+  const assistantProfilesAvailable = assistantData.length > 0 || remoteAssistants.length > 0;
 
   return {
     health: {
@@ -523,7 +524,7 @@ export async function listAICallDashboardData() {
       defaultAssistantConfigured: Boolean(vapiConfig?.defaultAssistantId),
       defaultPhoneNumberConfigured: Boolean(vapiConfig?.defaultPhoneNumberId),
       webhookActive: Boolean(recentWebhook),
-      assistantProfilesAvailable: assistantData.length > 0,
+      assistantProfilesAvailable,
       campaignsNeedAttention: attentionCampaigns > 0,
       activeCampaigns,
     },

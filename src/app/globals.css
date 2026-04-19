@@ -29,13 +29,13 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.75rem;
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 224 71% 10%;
+    --sidebar-background: 214 45% 97%;
+    --sidebar-foreground: 224 46% 18%;
     --sidebar-primary: 220 28% 44%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 33% 96%;
-    --sidebar-accent-foreground: 220 28% 44%;
-    --sidebar-border: 220 13% 91%;
+    --sidebar-accent: 212 52% 93%;
+    --sidebar-accent-foreground: 217 40% 34%;
+    --sidebar-border: 214 34% 87%;
     --sidebar-ring: 260 85% 75%;
   }
   .dark {

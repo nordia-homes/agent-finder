@@ -212,6 +212,25 @@ export function AICallDashboard() {
 
     return [...savedOptions, ...vapiOptions];
   }, [assistants, remoteAssistants, remotePhoneNumbers]);
+  const assistantProfilesForCard = useMemo(() => {
+    return assistantOptions.map((assistant) => {
+      if (assistant.source === 'saved') {
+        return {
+          id: assistant.value,
+          source: assistant.source,
+          name: assistant.label,
+          assistantId: assistant.assistantId,
+        };
+      }
+
+      return {
+        id: assistant.value,
+        source: assistant.source,
+        name: assistant.label,
+        assistantId: assistant.assistantId,
+      };
+    });
+  }, [assistantOptions]);
   const selectedAssistantOption = useMemo(
     () => assistantOptions.find((assistant) => assistant.value === campaignForm.assistantRefId) ?? null,
     [assistantOptions, campaignForm.assistantRefId]
@@ -648,40 +667,56 @@ export function AICallDashboard() {
         <TabsContent value="operations" className="space-y-4">
       <div className="grid gap-4 xl:grid-cols-[1fr_0.8fr]">
         <div className="space-y-4">
-          <Card className="border-white/10 bg-white/80">
+          <Card className="border-[#bfd6f2] bg-[linear-gradient(180deg,rgba(236,244,254,0.98),rgba(220,234,250,0.94))] shadow-sm">
             <CardHeader><CardTitle>Saved Assistant Profiles</CardTitle><CardDescription>Reusable Vapi assistant and outbound number combinations.</CardDescription></CardHeader>
             <CardContent className="space-y-3">
-              {assistants.length === 0 ? <p className="text-sm text-muted-foreground">No assistant profiles yet. Add one to make campaign setup safer.</p> : assistants.map((assistant) => (
-                <div key={assistant.id} className="rounded-2xl border p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div><p className="font-medium text-slate-900">{assistant.name}</p><p className="mt-1 text-sm text-muted-foreground">{assistant.description}</p></div>
-                    <Badge variant="outline">{assistant.status}</Badge>
-                  </div>
-                  <div className="mt-3 grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
-                    <div>Assistant ID: <span className="font-medium text-slate-900">{assistant.assistantId}</span></div>
-                    <div>Phone Number ID: <span className="font-medium text-slate-900">{assistant.phoneNumberId}</span></div>
-                  </div>
+              {assistantProfilesForCard.length === 0 ? <p className="text-sm text-muted-foreground">No saved profiles or Vapi assistants available yet.</p> : (
+                <div className="overflow-hidden rounded-3xl border border-[#cfe0f5] bg-[#eef5fd]">
+                  {assistantProfilesForCard.map((assistant, index) => (
+                    <div
+                      key={assistant.id}
+                      className={`flex flex-col gap-3 bg-[#f7fbff] px-4 py-4 transition-colors duration-200 hover:bg-[#e8f2ff] sm:flex-row sm:items-center sm:justify-between ${index !== assistantProfilesForCard.length - 1 ? 'border-b border-[#d6e5f7]' : ''}`}
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-slate-900">{assistant.name}</p>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className={assistant.source === 'saved' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-sky-200 bg-sky-50 text-sky-700'}
+                        >
+                          {assistant.source === 'saved' ? 'Local' : 'Vapi'}
+                        </Badge>
+                        <Button asChild size="sm" variant="ghost" className="text-slate-700 hover:bg-slate-100 hover:text-slate-900">
+                          <a href={`https://dashboard.vapi.ai/assistants/${assistant.assistantId}`} target="_blank" rel="noreferrer">
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Open in Vapi
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-white/80">
+          <Card className="border-[#bfd1ea] bg-[linear-gradient(180deg,#dce9f8,#c8dbf2)] shadow-sm">
             <CardHeader><CardTitle>Campaigns</CardTitle><CardDescription>Live and scheduled AI call campaigns backed by Vapi dispatch.</CardDescription></CardHeader>
             <CardContent className="space-y-4">
               {campaigns.length === 0 ? <p className="text-sm text-muted-foreground">No AI call campaigns yet. Create one from the button above.</p> : campaigns.map((campaign) => (
-                <div key={campaign.id} className="rounded-3xl border p-5">
+                <div key={campaign.id} className="rounded-3xl border border-[#b9cee8] bg-[#f4f8fd] p-5 shadow-[0_10px_30px_rgba(74,105,145,0.12)]">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div><p className="font-headline text-xl text-primary">{campaign.name}</p><p className="mt-1 text-sm text-muted-foreground">{campaign.description}</p></div>
                     <Badge variant="outline" className={statusStyles[campaign.status] ?? statusStyles.draft}>{campaign.status}</Badge>
                   </div>
                   <div className="mt-4 grid gap-3 md:grid-cols-4">
-                    <div className="rounded-2xl bg-muted/50 p-3 text-sm"><p className="text-muted-foreground">Audience</p><p className="font-medium">{campaign.leadCount}</p></div>
-                    <div className="rounded-2xl bg-muted/50 p-3 text-sm"><p className="text-muted-foreground">Queued</p><p className="font-medium">{campaign.queuedCount}</p></div>
-                    <div className="rounded-2xl bg-muted/50 p-3 text-sm"><p className="text-muted-foreground">Answered</p><p className="font-medium">{campaign.answeredCount}</p></div>
-                    <div className="rounded-2xl bg-muted/50 p-3 text-sm"><p className="text-muted-foreground">Failed</p><p className="font-medium">{campaign.failedCount}</p></div>
+                    <div className="rounded-2xl border border-[#c7d8ee] bg-[#e6effa] p-3 text-sm"><p className="text-[#5c708b]">Audience</p><p className="font-medium text-[#1f3147]">{campaign.leadCount}</p></div>
+                    <div className="rounded-2xl border border-[#c7d8ee] bg-[#e6effa] p-3 text-sm"><p className="text-[#5c708b]">Queued</p><p className="font-medium text-[#1f3147]">{campaign.queuedCount}</p></div>
+                    <div className="rounded-2xl border border-[#c7d8ee] bg-[#e6effa] p-3 text-sm"><p className="text-[#5c708b]">Answered</p><p className="font-medium text-[#1f3147]">{campaign.answeredCount}</p></div>
+                    <div className="rounded-2xl border border-[#c7d8ee] bg-[#e6effa] p-3 text-sm"><p className="text-[#5c708b]">Failed</p><p className="font-medium text-[#1f3147]">{campaign.failedCount}</p></div>
                   </div>
-                  <div className="mt-3 rounded-2xl bg-muted/40 p-3 text-sm text-muted-foreground">
+                  <div className="mt-3 rounded-2xl border border-[#c7d8ee] bg-[#e9f1fb] p-3 text-sm text-[#526780]">
                     Retry policy: {campaign.retryEnabled ? `enabled, every ${campaign.retryDelayMinutes || 1440} min up to ${campaign.maxAttempts || 3} attempts` : 'disabled'}
                   </div>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
@@ -707,11 +742,11 @@ export function AICallDashboard() {
         </div>
 
         <div className="space-y-4">
-          <Card className="border-white/10 bg-white/80">
+          <Card className="border-[#dbe3ee] bg-[linear-gradient(180deg,rgba(246,249,253,0.98),rgba(237,243,250,0.94))] shadow-sm">
             <CardHeader><CardTitle>Recent Call Outcomes</CardTitle><CardDescription>Recipient-level results captured from Vapi webhooks.</CardDescription></CardHeader>
             <CardContent className="space-y-3">
               {recipients.length === 0 ? <p className="text-sm text-muted-foreground">Recipient-level call history will appear here after campaigns are launched.</p> : recipients.slice(0, 12).map((recipient) => (
-                <div key={recipient.id} className="rounded-2xl border p-4">
+                <div key={recipient.id} className="rounded-2xl border border-[#d8e2ef] bg-white/80 p-4 shadow-[0_8px_20px_rgba(121,146,177,0.06)]">
                   <div className="flex items-start justify-between gap-3">
                     <div><p className="font-medium text-slate-900">{recipient.phone || 'Unknown number'}</p><p className="mt-1 text-sm text-muted-foreground">Outcome: {String(recipient.outcome || 'unknown').replace(/_/g, ' ')}</p></div>
                     <Badge variant="outline">{recipient.status}</Badge>
@@ -722,11 +757,11 @@ export function AICallDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-white/80">
+          <Card className="border-[#dbe3ee] bg-[linear-gradient(180deg,rgba(244,248,253,0.98),rgba(234,241,249,0.94))] shadow-sm">
             <CardHeader><CardTitle>Scheduled Jobs</CardTitle><CardDescription>Local queue for future dispatch and retries.</CardDescription></CardHeader>
             <CardContent className="space-y-3">
               {jobs.length === 0 ? <p className="text-sm text-muted-foreground">No scheduled jobs are pending right now.</p> : jobs.map((job) => (
-                <div key={job.id} className="rounded-2xl border p-4 text-sm">
+                <div key={job.id} className="rounded-2xl border border-[#d8e2ef] bg-white/80 p-4 text-sm shadow-[0_8px_20px_rgba(121,146,177,0.06)]">
                   <div className="flex items-center justify-between gap-3"><p className="font-medium text-slate-900">{job.jobType}</p><Badge variant="outline">{job.status}</Badge></div>
                   <p className="mt-2 text-muted-foreground">Runs {formatRelative(job.runAt)} · {job.timezone}</p>
                 </div>
