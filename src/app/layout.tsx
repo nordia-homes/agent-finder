@@ -1,12 +1,31 @@
-import type {Metadata} from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from '@/lib/utils';
 import { FirebaseClientProvider } from '@/firebase';
+import { DesktopInstall } from '@/components/pwa/desktop-install';
 
 export const metadata: Metadata = {
   title: 'Agent Finder Pro',
   description: 'Internal CRM for a real estate SaaS company.',
+  manifest: '/manifest.webmanifest',
+  applicationName: 'Agent Finder Pro',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Agent Finder Pro',
+  },
+  icons: {
+    apple: '/icons/icon-192.png',
+    icon: [
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#445b84',
 };
 
 export default function RootLayout({
@@ -26,6 +45,7 @@ export default function RootLayout({
         )}>
         <FirebaseClientProvider>
           {children}
+          <DesktopInstall />
         </FirebaseClientProvider>
         <Toaster />
       </body>
