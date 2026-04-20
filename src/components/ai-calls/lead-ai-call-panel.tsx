@@ -149,10 +149,10 @@ export function LeadAICallPanel({ lead }: { lead: Lead }) {
   async function loadData() {
     setLoading(true);
     try {
-      const response = await fetch(`/api/ai-calls/leads/${lead.id}`, { cache: 'no-store' });
-      const payload = await response.json();
+      const response = await fetch(`/api/ai-calls/leads/${encodeURIComponent(lead.id)}`, { cache: 'no-store' });
+      const payload = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new Error(payload.error || 'Could not load AI call history for this lead.');
+        throw new Error((payload as { error?: string } | null)?.error || 'Could not load AI call history for this lead.');
       }
       setData(payload as PanelPayload);
     } catch (error) {

@@ -90,14 +90,14 @@ export function LeadWhatsAppPanel({ lead }: { lead: Lead }) {
   async function loadLeadWhatsAppData() {
     setMessagesLoading(true);
     try {
-      const response = await fetch(`/api/whatsapp/leads/${lead.id}`, { cache: 'no-store' });
-      const payload = await response.json();
+      const response = await fetch(`/api/whatsapp/leads/${encodeURIComponent(lead.id)}`, { cache: 'no-store' });
+      const payload = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new Error(payload.error || 'Could not load WhatsApp data for this lead.');
+        throw new Error((payload as { error?: string } | null)?.error || 'Could not load WhatsApp data for this lead.');
       }
-      setConversation(payload.conversation as WhatsAppConversation | null);
-      setAllMessages((payload.messages ?? []) as WhatsAppMessage[]);
-      setTemplates((payload.templates ?? []) as WhatsAppTemplate[]);
+      setConversation((payload as { conversation?: WhatsAppConversation | null } | null)?.conversation ?? null);
+      setAllMessages(((payload as { messages?: WhatsAppMessage[] } | null)?.messages ?? []) as WhatsAppMessage[]);
+      setTemplates(((payload as { templates?: WhatsAppTemplate[] } | null)?.templates ?? []) as WhatsAppTemplate[]);
     } catch (error) {
       toast({
         title: 'WhatsApp data unavailable',

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { notFound, useParams, useRouter } from 'next/navigation';
 import { useDoc, useCollection, useFirestore, useUser } from '@/firebase';
 import { doc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
@@ -11,23 +12,13 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Lead, Activity, Task } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LeadLifecycleTracker } from '@/components/leads/lead-lifecycle-tracker';
-import { LeadInfoCard } from '@/components/leads/lead-info-card';
-import { NotesSection } from '@/components/leads/notes';
-import { ActivityTimeline } from '@/components/leads/activity-timeline';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
-import { TasksSection } from '@/components/leads/tasks-section';
-import { AIExplanationDialog } from '@/components/leads/ai-explanation-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EditableLeadDetail } from '@/components/leads/editable-lead-detail';
-import { AssociatedLeadsDialog } from '@/components/leads/associated-leads-dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { LeadWhatsAppPanel } from '@/components/whatsapp/lead-whatsapp-panel';
-import { LeadAICallPanel } from '@/components/ai-calls/lead-ai-call-panel';
 import { getLeadStatusLabel, normalizeLeadStatus } from '@/lib/lead-status';
 import {
   AlertDialog,
@@ -41,6 +32,76 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { serverTimestamp } from 'firebase/firestore';
+
+const LeadWhatsAppPanel = dynamic(
+  () => import('@/components/whatsapp/lead-whatsapp-panel').then((mod) => mod.LeadWhatsAppPanel),
+  {
+    ssr: false,
+    loading: () => (
+      <Card>
+        <CardHeader>
+          <CardTitle>WhatsApp Communication</CardTitle>
+          <CardDescription>Loading WhatsApp panel...</CardDescription>
+        </CardHeader>
+      </Card>
+    ),
+  }
+);
+
+const LeadLifecycleTracker = dynamic(
+  () => import('@/components/leads/lead-lifecycle-tracker').then((mod) => mod.LeadLifecycleTracker),
+  { ssr: false, loading: () => <Skeleton className="h-20 w-full" /> }
+);
+
+const LeadInfoCard = dynamic(
+  () => import('@/components/leads/lead-info-card').then((mod) => mod.LeadInfoCard),
+  { ssr: false, loading: () => <Skeleton className="h-40 w-full" /> }
+);
+
+const NotesSection = dynamic(
+  () => import('@/components/leads/notes').then((mod) => mod.NotesSection),
+  { ssr: false, loading: () => <Skeleton className="h-64 w-full" /> }
+);
+
+const ActivityTimeline = dynamic(
+  () => import('@/components/leads/activity-timeline').then((mod) => mod.ActivityTimeline),
+  { ssr: false, loading: () => <Skeleton className="h-64 w-full" /> }
+);
+
+const TasksSection = dynamic(
+  () => import('@/components/leads/tasks-section').then((mod) => mod.TasksSection),
+  { ssr: false, loading: () => <Skeleton className="h-64 w-full" /> }
+);
+
+const AIExplanationDialog = dynamic(
+  () => import('@/components/leads/ai-explanation-dialog').then((mod) => mod.AIExplanationDialog),
+  { ssr: false, loading: () => <div className="h-8 w-8" /> }
+);
+
+const EditableLeadDetail = dynamic(
+  () => import('@/components/leads/editable-lead-detail').then((mod) => mod.EditableLeadDetail),
+  { ssr: false, loading: () => <Skeleton className="h-20 w-full" /> }
+);
+
+const AssociatedLeadsDialog = dynamic(
+  () => import('@/components/leads/associated-leads-dialog').then((mod) => mod.AssociatedLeadsDialog),
+  { ssr: false }
+);
+
+const LeadAICallPanel = dynamic(
+  () => import('@/components/ai-calls/lead-ai-call-panel').then((mod) => mod.LeadAICallPanel),
+  {
+    ssr: false,
+    loading: () => (
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Call History</CardTitle>
+          <CardDescription>Loading AI call panel...</CardDescription>
+        </CardHeader>
+      </Card>
+    ),
+  }
+);
 
 
 const classificationStyles: Record<Lead['classification'], string> = {
@@ -329,7 +390,7 @@ export default function LeadDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           <LeadInfoCard lead={lead} />
           
-          <Tabs defaultValue="whatsapp" className="w-full">
+          <Tabs defaultValue="email" className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-muted/50">
               <TabsTrigger value="whatsapp"><MessageSquare className="mr-2 h-4 w-4"/>WhatsApp</TabsTrigger>
               <TabsTrigger value="email"><Mail className="mr-2 h-4 w-4"/>Email</TabsTrigger>

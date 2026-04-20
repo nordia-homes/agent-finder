@@ -6,15 +6,13 @@ import { Building } from 'lucide-react';
 import { cookies } from 'next/headers';
 import { AppProviders } from './providers';
 
-export default function AppLayout({
+export default async function AppLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const sidebarCookie = cookies();
-  const sidebarState = typeof (sidebarCookie as any).get === 'function'
-    ? (sidebarCookie as any).get('sidebar_state')
-    : undefined;
+  const sidebarCookie = await cookies();
+  const sidebarState = sidebarCookie.get('sidebar_state');
   const defaultOpen = sidebarState?.value !== 'false';
 
   return (
