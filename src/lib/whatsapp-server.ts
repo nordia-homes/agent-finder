@@ -129,6 +129,15 @@ function collectionRef(name: string) {
   return adminDb.collection(name);
 }
 
+function isMissingFirestoreIndexError(error: unknown) {
+  if (!error || typeof error !== 'object') return false;
+
+  const firestoreError = error as { code?: unknown; message?: unknown };
+  const message = typeof firestoreError.message === 'string' ? firestoreError.message : '';
+
+  return firestoreError.code === 9 || message.includes('FAILED_PRECONDITION') || message.includes('requires an index');
+}
+
 function safeBoolean(value: unknown) {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'string') {
@@ -200,14 +209,35 @@ export async function listWhatsAppDashboardData() {
 }
 
 export async function getLeadWhatsAppData(leadId: string) {
+  const messagesPromise = collectionRef('whatsapp_messages')
+    .where('leadId', '==', leadId)
+    .orderBy('createdAt', 'desc')
+    .limit(25)
+    .get()
+    .catch(async (error) => {
+      if (!isMissingFirestoreIndexError(error)) {
+        throw error;
+      }
+
+      const fallbackSnap = await collectionRef('whatsapp_messages')
+        .where('leadId', '==', leadId)
+        .get();
+
+      const sortedDocs = [...fallbackSnap.docs].sort((left, right) => {
+        const leftMillis = left.data().createdAt?.toMillis?.() ?? 0;
+        const rightMillis = right.data().createdAt?.toMillis?.() ?? 0;
+        return rightMillis - leftMillis;
+      });
+
+      return {
+        docs: sortedDocs.slice(0, 25),
+      };
+    });
+
   const [leadSnap, conversationSnap, messagesSnap, templatesSnap] = await Promise.all([
     collectionRef('leads').doc(leadId).get(),
     collectionRef('whatsapp_conversations').doc(leadId).get(),
-    collectionRef('whatsapp_messages')
-      .where('leadId', '==', leadId)
-      .orderBy('createdAt', 'desc')
-      .limit(25)
-      .get(),
+    messagesPromise,
     collectionRef('whatsapp_templates').orderBy('updatedAt', 'desc').limit(30).get(),
   ]);
 
