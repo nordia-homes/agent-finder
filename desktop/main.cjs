@@ -15,6 +15,9 @@ function createWindow() {
     height: 940,
     minWidth: 1180,
     minHeight: 760,
+    show: false,
+    fullscreenable: true,
+    maximizable: true,
     backgroundColor: '#eef3fb',
     autoHideMenuBar: true,
     icon: windowIcon.isEmpty() ? undefined : windowIcon,
@@ -25,6 +28,12 @@ function createWindow() {
       sandbox: true,
     },
     title: 'Agent Finder Pro',
+  });
+
+  mainWindow.once('ready-to-show', () => {
+    if (!mainWindow) return;
+    mainWindow.maximize();
+    mainWindow.show();
   });
 
   mainWindow.loadURL(START_URL).catch(() => {
