@@ -1,6 +1,8 @@
 {
   "name": "nextn",
   "version": "0.1.0",
+  "description": "Agent Finder Pro desktop wrapper and CRM workspace.",
+  "author": "Nordia Homes",
   "private": true,
   "main": "desktop/main.cjs",
   "scripts": {
@@ -94,7 +96,7 @@
           ]
         }
       ],
-      "icon": "src/app/favicon.ico"
+      "icon": "public/icons/icon-512.png"
     },
     "nsis": {
       "oneClick": false,
