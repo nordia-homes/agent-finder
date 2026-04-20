@@ -48,10 +48,13 @@ type WhatsAppDashboardPayload = {
 type AICallDashboardPayload = {
   health?: {
     vapiConfigured?: boolean;
-    assistantsAvailable?: boolean;
+    assistantProfilesAvailable?: boolean;
     activeCampaigns?: number;
   };
   assistants?: Array<unknown>;
+  workspace?: {
+    assistants?: Array<unknown>;
+  };
   campaigns?: Array<{ status?: string }>;
 };
 
@@ -178,6 +181,9 @@ export default function SettingsPage() {
   const activeLeadCount = (leads || []).filter((lead) => !lead.archived_at).length;
   const openTasks = (tasks || []).filter((task) => !task.completed).length;
   const completedTasks = (tasks || []).filter((task) => task.completed).length;
+  const savedAssistantCount = aiDashboard?.assistants?.length ?? 0;
+  const remoteAssistantCount = aiDashboard?.workspace?.assistants?.length ?? 0;
+  const assistantProfilesAvailable = Boolean(aiDashboard?.health?.assistantProfilesAvailable);
 
   const whatsappReadyChecks = [
     Boolean(whatsappDashboard?.health?.infobipConfigured),
@@ -188,7 +194,7 @@ export default function SettingsPage() {
 
   const aiReadyChecks = [
     Boolean(aiDashboard?.health?.vapiConfigured),
-    Boolean(aiDashboard?.health?.assistantsAvailable),
+    assistantProfilesAvailable,
     typeof aiDashboard?.health?.activeCampaigns === 'number',
   ];
 
@@ -201,7 +207,7 @@ export default function SettingsPage() {
   const recommendedActions = [
     !whatsappDashboard?.health?.approvedTemplatesAvailable ? 'Approve at least one WhatsApp template for live follow-up.' : null,
     !whatsappDashboard?.health?.webhookActive ? 'Validate inbound and status webhooks so conversation timelines stay current.' : null,
-    !aiDashboard?.health?.assistantsAvailable ? 'Create or sync a Vapi assistant before launching AI call campaigns.' : null,
+    !assistantProfilesAvailable ? 'Create or sync a Vapi assistant before launching AI call campaigns.' : null,
     openTasks > 25 ? 'Open task load is high. Consider triage rules or owner rebalancing.' : null,
   ].filter(Boolean) as string[];
 
@@ -469,14 +475,15 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <StatusBadge label={aiDashboard?.health?.assistantsAvailable ? 'Assistants ready' : 'No assistants'} tone={aiDashboard?.health?.assistantsAvailable ? 'good' : 'warn'} />
+                    <StatusBadge label={assistantProfilesAvailable ? 'Assistants ready' : 'No assistants'} tone={assistantProfilesAvailable ? 'good' : 'warn'} />
                     <StatusBadge label={`${aiDashboard?.health?.activeCampaigns ?? 0} active campaigns`} tone="muted" />
-                    <StatusBadge label={`${aiDashboard?.assistants?.length ?? 0} assistants`} tone="muted" />
+                    <StatusBadge label={`${savedAssistantCount} saved profiles`} tone="muted" />
+                    <StatusBadge label={`${remoteAssistantCount} Vapi assistants`} tone="muted" />
                   </div>
                   <p className="mt-4 text-sm text-slate-500">
                     {aiError
                       ? `AI call health could not be loaded: ${aiError}`
-                      : `${aiDashboard?.campaigns?.length ?? 0} AI call campaigns are available for review from the dashboard feed.`}
+                      : `${aiDashboard?.campaigns?.length ?? 0} AI call campaigns are available for review. Settings currently sees ${remoteAssistantCount} assistant${remoteAssistantCount === 1 ? '' : 's'} from Vapi and ${savedAssistantCount} saved profile${savedAssistantCount === 1 ? '' : 's'} in Firestore.`}
                   </p>
                 </div>
               </div>
