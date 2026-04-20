@@ -2,11 +2,16 @@
   "name": "nextn",
   "version": "0.1.0",
   "private": true,
+  "main": "desktop/main.cjs",
   "scripts": {
     "dev": "node --max-old-space-size=8192 ./node_modules/next/dist/bin/next dev -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "node --max-old-space-size=8192 ./node_modules/next/dist/bin/next build",
+    "desktop:dev": "node ./desktop/dev.cjs",
+    "desktop:start": "electron .",
+    "desktop:pack": "electron-builder --dir",
+    "desktop:dist": "electron-builder --win nsis",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc --noEmit"
@@ -60,9 +65,42 @@
     "@types/node": "^20",
     "@types/react": "^19.2.1",
     "@types/react-dom": "^19.2.1",
+    "electron": "^37.2.1",
+    "electron-builder": "^25.1.8",
     "genkit-cli": "^1.28.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
+  },
+  "build": {
+    "appId": "com.nordia.agentfinderpro",
+    "productName": "Agent Finder Pro",
+    "artifactName": "${productName}-Setup-${version}.${ext}",
+    "files": [
+      "desktop/**/*",
+      "package.json",
+      "public/icons/**/*",
+      "src/app/favicon.ico"
+    ],
+    "directories": {
+      "output": "dist-electron"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "src/app/favicon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Agent Finder Pro"
+    }
   }
 }
